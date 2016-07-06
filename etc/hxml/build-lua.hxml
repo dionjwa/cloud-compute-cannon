@@ -1,0 +1,14 @@
+# etc/hxml/base.hxml
+
+-lib abstracts-core:0.1.0
+
+-dce full
+
+-cp src/haxe
+
+# -main LuaTest
+LuaTest
+
+-lua build/lua/luatest.lua
+
+# -cmd echo '#!/usr/bin/env python3' | cat - bin/client.py > temp && mv temp bin/client.py && chmod 755 bin/client.py
