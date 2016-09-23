@@ -2,9 +2,15 @@
 
 set -ev
 
+echo "TRAVIS_COMMIT=$TRAVIS_COMMIT"
 echo "TRAVIS_BRANCH=$TRAVIS_BRANCH"
 echo "TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST"
 echo "TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG"
+
+GIT_TAG=`git rev-parse HEAD`
+GIT_TAG=${GIT_TAG:7:8}
+echo "GIT_TAG(git rev-parse HEAD)=$GIT_TAG"
+
 
 #Then run the tests
 NPM_VERSION=$(cat package.json \
