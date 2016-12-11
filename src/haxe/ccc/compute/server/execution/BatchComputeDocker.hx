@@ -536,6 +536,55 @@ class BatchComputeDocker
 		return {promise:p, cancel:cancel};
 	}
 
+// 	public static function copyInputs(redis :RedisClient, job :QueueJobDefinitionDocker, fs :ServiceStorage, workerStorage :ServiceStorage, log :AbstractLogger)
+// 	{
+// 		// var outputVolumeName = JobTools.getWorkerVolumeNameOutputs(job.computeJobId);
+// 		// var outputsVolume :MountedDockerVolumeDef = {
+// 		// 	dockerOpts: job.worker.docker,
+// 		// 	name: outputVolumeName,
+// 		// };
+// 		var isInputs = job.item.inputs != null && job.item.inputs.length > 0;
+// 		if (!isInputs) {
+// 			return Promise.promise(true);
+// 		}
+// 		var inputVolumeName = job.item.inputs.length > 0 ? JobTools.getWorkerVolumeNameInputs(job.computeJobId) : null;
+
+// 		return Promise.promise(true)
+
+// 			// .pipe(function(_) {
+// 			// 	log.debug({log:'Creating output volume'});
+// 			// 	return DockerDataTools.createVolume(outputsVolume);
+// 			// })
+// 			.pipe(function(_) {
+// 				log.debug({log:'copying ${job.item.inputs.length} inputs '});
+// 				if (job.item.inputs.length == 0) {
+// 					return Promise.promise(null);
+// 				} else {
+// 					var inputsVolume :MountedDockerVolumeDef = {
+// 						dockerOpts: job.worker.docker,
+// 						name: inputVolumeName,
+// 					};
+// 					log.debug({log:'Creating volume=$inputVolumeName'});
+// 					return DockerDataTools.createVolume(inputsVolume)
+// 						.pipe(function(_) {
+// 							log.debug({JobWorkingStatus:jobWorkingStatus, log:'Copying inputs to volume=$inputVolumeName'});
+// 							return DockerJobTools.copyToVolume(inputStorageRemote, null, inputsVolume).end;
+// 						});
+// 				}
+// 			})
+// 			.then(function(_) {
+// 				log.debug({JobWorkingStatus:jobWorkingStatus, log:'finished copying inputs=' + job.item.inputs});
+// 				return true;
+// 			})
+// 			.pipe(function(_) {
+// 				return setStatus(JobWorkingStatus.CopyingImage);
+// 			});
+// 		} else {
+// 			return Promise.promise(true);
+// 		}
+// })
+// 	}
+
 	static function getContainer(docker :Docker, computeJobId :ComputeJobId) :Promise<ContainerData>
 	{
 		return DockerPromises.listContainers(docker, {all:true, filters:DockerTools.createLabelFilter('computeId=$computeJobId')})
