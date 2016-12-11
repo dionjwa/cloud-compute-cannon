@@ -27,6 +27,7 @@
     "bluebird": "^3.4.7",
     "body-parser": "^1.16.0",
     "bunyan": "^1.8.5",
+    "bull": "^2.0.0",
     "bunyan-format": "^0.2.1",
     "busboy": "^0.2.14",
     "chokidar": "^1.6.1",

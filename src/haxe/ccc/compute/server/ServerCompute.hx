@@ -50,6 +50,8 @@ class ServerCompute
 		ErrorToJson;
 		monitorMemory();
 		runServer();
+
+		ccc.compute.mode.singleworker.ProcessQueue;
 	}
 
 	static function runServer()
