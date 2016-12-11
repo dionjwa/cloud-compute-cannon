@@ -147,30 +147,6 @@ class Job
 			});
 	}
 
-	public static function logStdStreamsToElasticSearch(redis :RedisClient, fs :ServiceStorage, jobId :JobId) :Promise<Bool>
-	{
-		// FluentTools
-		Assert.notNull(redis);
-		Assert.notNull(fs);
-		Assert.notNull(jobId);
-		return ServerCommands.getStdout(redis, fs, jobId)
-			.pipe(function(stdout) {
-				if (stdout != null) {
-					FluentTools.logToFluent({source:STDOUT_FILE, jobId:jobId, stdout:stdout});
-				}
-				return Promise.promise(true);
-			})
-			.pipe(function(_) {
-				return ServerCommands.getStderr(redis, fs, jobId);
-			})
-			.pipe(function(stderr) {
-				if (stderr != null) {
-					FluentTools.logToFluent({source:STDERR_FILE, jobId:jobId, stdout:stderr});
-				}
-				return Promise.promise(true);
-			});
-	}
-
 	public var id (get, null) :ComputeJobId;
 	public var computeJobId (get, null) :ComputeJobId;
 	public var jobId (get, null) :JobId;
