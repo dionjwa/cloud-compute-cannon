@@ -38,8 +38,8 @@ for VERSION in $GIT_TAG $NPM_VERSION ; do
 
 	cp docker-compose.core.yml $ZIP_DIR/
 	cp docker-compose.yml $ZIP_DIR/
-
 	cp docker-compose.prod.yml $ZIP_DIR/
+	cp docker-compose.npm-prod.yml $ZIP_DIR/
 	cp -r etc $ZIP_DIR/
 
 	#configuration packed with the artifacts
