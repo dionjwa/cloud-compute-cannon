@@ -51,7 +51,7 @@ class ServerCompute
 		monitorMemory();
 		runServer();
 
-		ccc.compute.mode.singleworker.ProcessQueue;
+		ccc.compute.server.execution.singleworker.ProcessQueue;
 	}
 
 	static function runServer()
