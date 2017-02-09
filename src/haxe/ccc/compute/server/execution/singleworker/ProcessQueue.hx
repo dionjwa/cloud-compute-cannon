@@ -20,18 +20,29 @@ typedef RedisConnection = {
 	@:optional var opts :Dynamic;
 }
 
-typedef ProcessArguments = {
+typedef QueueArguments = {
 	var redis: RedisConnection;
+	var log :AbstractLogger;
+}
+
+typedef ProcessArguments = { >QueueArguments,
 	@:optional var cpus :Int;
 	var remoteStorage :ServiceStorage;
 	var workerStorage :ServiceStorage;
-	var log :AbstractLogger;
 }
 
 class ProcessQueue
 {
 	inline public static var JOB_QUEUE_NAME = "job_queue";
 	inline static var DEFAULT_REDIS_PORT = 6379;
+
+	public static function getQueue(args :QueueArguments) :Queue<QueueJobDefinitionDocker,JobResult>
+	{
+		var redisHost :String = args.redis.host;
+		var redisPort :Int = args.redis.port != null ? args.redis.port : DEFAULT_REDIS_PORT;
+		return new Queue(JOB_QUEUE_NAME, redisPort, redisHost);
+	}
+
 	public static function createProcessor(args :ProcessArguments) :Queue<QueueJobDefinitionDocker,JobResult>
 	{
 		var redisHost :String = args.redis.host;

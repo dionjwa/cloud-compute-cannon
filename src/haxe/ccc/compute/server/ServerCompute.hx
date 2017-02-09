@@ -123,6 +123,8 @@ class ServerCompute
 		var injector = new Injector();
 		injector.map(Injector).toValue(injector); //Map itself
 
+		mapEnvVars(injector);
+
 		for (key in Reflect.fields(config)) {
 			if (key != 'storage' && key != 'providers') {
 				Reflect.setField(env, key, Reflect.field(config, key));
@@ -371,6 +373,9 @@ class ServerCompute
 				status = ServerStatus.BuildingServices_3_5;
 				Log.debug({server_status:status});
 
+				var redis :RedisClient = injector.getValue(RedisClient);
+
+
 				//Build and inject the app logic
 				//Create services
 				workerProviders = config.providers.map(WorkerProviderTools.getProvider);
@@ -381,6 +386,7 @@ class ServerCompute
 			})
 			.then(function(_) {
 				//The queue manager
+				
 				var schedulingService = new ServiceBatchCompute();
 				injector.map(ServiceBatchCompute).toValue(schedulingService);
 
@@ -577,6 +583,15 @@ class ServerCompute
 					}
 				}
 			});
+	}
+
+	static function mapEnvVars(injector :Injector)
+	{
+		var env :DynamicAccess<String> = Node.process.env;
+		var redisHost = env[ENV_REDIS_HOST];
+		var redisPort = env[ENV_REDIS_PORT] != null && env[ENV_REDIS_PORT] != '' ? Std.parseInt(env[REDIS_PORT]) : REDIS_PORT;
+		injector.map(String, ENV_REDIS_HOST).toValue(redisHost);
+		injector.map(Int, ENV_REDIS_PORT).toValue(redisPort);
 	}
 
 	static function monitorMemory()
