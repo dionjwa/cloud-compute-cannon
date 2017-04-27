@@ -17,6 +17,19 @@ import js.npm.bluebird.Bluebird;
 class RpcRoutes
 {
 	@rpc({
+		alias:'run-remote-job',
+		doc:'Run a previously executed job (e.g. to test for errors). The url parameter must be the results.json'
+	})
+	public function runRemoteJob(url :String) :Promise<JobResult>
+	{
+#if ((nodejs && !macro) && !excludeccc)
+		return ServerCommands.runRemoteJob(_injector, url);
+#else
+		return Promise.promise(null);
+#end
+	}
+
+	@rpc({
 		alias:'queues',
 		doc:'Get all bull queues'
 	})

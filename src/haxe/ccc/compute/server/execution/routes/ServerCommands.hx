@@ -17,6 +17,34 @@ import util.DateFormatTools;
 class ServerCommands
 {
 	/** For debugging */
+	public static function runRemoteJob(injector :Injector, url :String) :Promise<JobResult>
+	{
+		if (!url.endsWith(RESULTS_JSON_FILE)) {
+			if (!url.endsWith('/')) {
+				url += '/';
+			}
+			url += RESULTS_JSON_FILE;
+		}
+		traceYellow('url=$url');
+		return RequestPromises.get(url)
+			.pipe(function(s) {
+				var jobResult :JobResult = Json.parse(s);
+				var definitionRemove :DockerBatchComputeJob = jobResult.definition;
+				
+				var definition :BasicBatchProcessRequest
+
+				submitJobJson(job :BasicBatchProcessRequest)
+
+				return ServiceBatchComputeTools.runComputeJobRequest(_injector, job);
+			})
+		return status()
+			.then(function(statusBlob) {
+				traceMagenta(Json.stringify(statusBlob, null, "  "));
+				return true;
+			});
+	}
+
+	/** For debugging */
 	public static function traceStatus() :Promise<Bool>
 	{
 		return status()
