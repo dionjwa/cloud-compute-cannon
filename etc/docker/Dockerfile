@@ -9,8 +9,6 @@ RUN npm install -g forever && touch $APP/.foreverignore
 
 ADD package.json $APP/package.json
 
-# npm install -g forever && \
-# touch $APP/.foreverignore
 RUN apk add --no-cache make gcc g++ python linux-headers udev git && \
 	npm install --quiet && \
 	apk del make gcc g++ python linux-headers udev git && \
