@@ -5,24 +5,12 @@ services:
   loadtest:
     image: hakobera/locust
     ports:
-      - "8089:8089"
-      - "5557:5557"
-      - "5558:5558"
+      - "8090:8089"
     volumes:
       - ./:/test
     environment:
       - LOCUST_MODE=standalone
       - SCENARIO_FILE=/test/locustfile.py
-      # - TARGET_URL=http://ccc.local:8080
-      - TARGET_URL=http://ccc:9000
-    networks:
-      - default
-      - cloudcomputecannon_default
-    external_links:
-      - ccc:cloudcomputecannon_serverworker_1
-
-networks:
-  cloudcomputecannon_default:
-    external: true
+      - TARGET_URL=http://ccc-internal.dev.lifesciences.autodesk.com
 
 
