@@ -1,0 +1,28 @@
+{
+  "job": {
+    "CreateContainerOptions": {
+      "Image": "docker.io/dionjwa/gslc:1a5fe0e6",
+      "Cmd": [
+        "/bin/sh",
+        "/inputs/script.sh"
+      ],
+      "EntryPoint": []
+    },
+    "inputs": [
+      {
+        "name": "script.sh",
+        "value": "\n#!/usr/bin/env sh\nmkdir /outputs\nmono /gslc/bin/Gslc.exe --lib /gslc/gslc_lib --flat /outputs/gslOutFlat.txt --json /outputs/gslOut.json --primers /outputs/gslOut.primers.txt --ape /outputs gslOut --cm /outputs gslOut /inputs/project.gsl\n"
+      },
+      {
+        "name": "project.gsl",
+        "value": "#refgenome S288C\n#name NewGSLConstruct\n#stitch\nuHO; !pTDH3 ; mERG10 ; dHO"
+      }
+    ],
+    "parameters": {
+      "maxDuration": 3000
+    },
+    "meta": {
+      "projectId": "project-a746da53-a17f-42e8-8ad1-cd2cf74b3ca5"
+    }
+  }
+}
