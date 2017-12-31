@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+
+  travis:
+    build: .
+    command: ["./bin/travis"]
+    working_dir: ${PWD}
+    volumes:
+      - ../../..:${PWD}
+      - /var/run/docker.sock:/var/run/docker.sock
