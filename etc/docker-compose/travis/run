@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Run the travis script in a docker container running the travis image.
+# This can be used to debug travis errors locally, rather than waiting
+# for travis ci to run on your git pushes.
+
+DIRNAME="`dirname \"$0\"`"/
+
+pushd $DIRNAME
+# ls ${PWD}/../../../
+docker-compose build
+PWD=${PWD}}/../../../ docker-compose up
+popd
