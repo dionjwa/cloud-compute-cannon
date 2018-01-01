@@ -15,7 +15,6 @@ import promhx.Promise;
 import batcher.servers.compute.ClientCompute;
 import ccc.compute.server.ComputeQueue;
 import ccc.compute.server.InstancePool;
-import ccc.compute.workers.VagrantTools;
 import ccc.compute.server.InitConfigTools;
 import ccc.compute.server.ConnectionToolsDocker;
 
@@ -55,42 +54,6 @@ class Cli
 		var commander :Commander = cast Commander;
 		commander
 			.version(Json.parse(Fs.readFileSync('package.json', {encoding:'utf8'})).version);
-
-		/* Vagrant commands */
-		function helpVagrant() {
-			log('\n  vagrant commands:\n');
-			log('     ' + VagrantCommand.DestroyAll + ' <directory>');
-			log('     ' + VagrantCommand.DestroyTestMachines);
-		}
-		commander
-			.command('vagrant [cmd] [directory]')
-			.alias('v')
-			.description('vagrant commands to help dealing with multiple local worker machines')
-			.action(function(cmd1 :String, cmd2, options) {
-				var vagrantCommand :VagrantCommand = cast cmd1;
-				if (cmd1 == null) {
-					helpVagrant();
-					return;
-				}
-				switch(vagrantCommand) {
-					case DestroyAll:
-						var dir = cmd2;
-						if (dir == null) {
-							log('Missing directory argument');
-						} else {
-							VagrantTools.removeAll(dir, true, _streams);
-						}
-					case DestroyTestMachines:
-						destroyAllVagrantMachines()
-						.pipe(function(_) {
-							log('...finished removing vagrant machines');
-							return Promise.promise(true);
-						});
-					default:
-						log('Unrecognized command "' + cmd1 + '"');
-				}
-			})
-			.on('', helpVagrant);
 
 		/* Test utilities */
 		commander

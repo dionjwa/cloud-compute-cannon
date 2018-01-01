@@ -16,6 +16,7 @@ class ClientJS
 			Log.warn('host argument is null, defaulting to "localhost:9000", the default local development server');
 			host = 'localhost:9000';
 		}
+		trace('CCC connecting to $host');
 		var rpcUrl = ClientJSTools.rpcUrl(host);
 		var proxy = t9.remoting.jsonrpc.Macros.buildRpcClient("ccc.compute.server.execution.routes.RpcRoutes", false)
 			.setUrl(rpcUrl);

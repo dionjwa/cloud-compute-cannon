@@ -6,6 +6,7 @@ import haxe.remoting.JsonRpc;
 import ccc.compute.shared.*;
 import ccc.compute.shared.Definitions;
 import ccc.compute.server.*;
+import ccc.compute.server.execution.*;
 import ccc.compute.client.cli.CliTools.*;
 
 import promhx.Promise;
@@ -30,7 +31,7 @@ class ClientCompute
 			return Promise.promise(null);
 		} else {
 			var clientProxy = getProxy(host.rpcUrl());
-			return clientProxy.doJobCommand(JobCLICommand.Result, [jobId])
+			return clientProxy.doJobCommand(JobCLICommand.Result, jobId)
 				.then(function(out :TypedDynamicObject<JobId,Dynamic>) {
 					var result :JobResult = Reflect.field(out, jobId);
 					JobTools.prependJobResultsUrls(result, host + '/');
@@ -49,7 +50,7 @@ class ClientCompute
 	{
 		var clientProxy = getProxy(host.rpcUrl());
 
-		return clientProxy.doJobCommand(JobCLICommand.Result, [jobId])
+		return clientProxy.doJobCommand(JobCLICommand.Result, jobId)
 			.then(function(out :TypedDynamicObject<JobId,Dynamic>) {
 				var result :JobDescriptionComplete = Reflect.field(out, jobId);
 				return result;
