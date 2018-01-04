@@ -26,8 +26,8 @@ class PythonClient
 {
 	static function main()
 	{
-		var res = Requests.get('https://api.github.com/events');
-		trace(res);
+		// var res = Requests.get('https://api.github.com/events');
+		// trace(res);
 		// var parameters :JobParams = {cpus:1, maxDuration:60*1000*10};
 
 		// var request :BasicBatchProcessRequest = {

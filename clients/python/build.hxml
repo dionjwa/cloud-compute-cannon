@@ -1,5 +1,7 @@
 etc/hxml/base.hxml
 
+-cp ../haxe-json-rpc/src/python
+
 -D clientjs
 
 -cp src
