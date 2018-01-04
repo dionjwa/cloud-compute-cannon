@@ -1,4 +1,4 @@
-package ccc.compute.client.util;
+package ccc.python.util;
 
 import python.*;
 import haxe.macro.*;

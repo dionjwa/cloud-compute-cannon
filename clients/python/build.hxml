@@ -1,0 +1,14 @@
+etc/hxml/base.hxml
+
+-D clientjs
+
+-cp src
+-cp clients/python/src
+
+-main ccc.python.PythonClient
+
+# -python build/python/client.py
+-python clients/python/client.py
+
+# -cmd python build/python/client.py
+-cmd docker run --rm -v $PWD/clients/python:/app -w /app ccc-python python3 client.py

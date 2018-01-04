@@ -154,7 +154,7 @@ class Constants
 	inline public static var LOCAL_STORAGE_VOLUME = 'ccc-local-storage';
 
 
-#if (nodejs && !macro)
+#if (nodejs && !macro && js)
 	public static var ROOT = (js.Node.process.platform == "win32") ? js.Node.process.cwd().split(js.node.Path.sep)[0] : "/";
 #end
 

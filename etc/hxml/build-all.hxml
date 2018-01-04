@@ -16,4 +16,10 @@ test/services/local-scaling-server/build.hxml
 --next
 src/lambda-autoscaling/build.hxml
 
+-cmd echo "Building python client"
+--next
+clients/python/build.hxml build.hxml
+
+
+
 
