@@ -3,6 +3,7 @@
 echo "Building and tagging images"
 set -e
 
+./bin/install
 ./bin/compile
 
 GIT_TAG=`git rev-parse HEAD`
