@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
-./bin/install
-TEST=false TEST_SCALING=true INSTALL=false docker-compose run ccc.tests
+# ./bin/install
+./bin/compile
+TEST=false TEST_SCALING=true docker-compose run ccc.tests
