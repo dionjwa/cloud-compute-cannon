@@ -2,4 +2,3 @@
 COMPOSE_TOOLS="docker-compose -f docker-compose.tools.yml run"
 $COMPOSE_TOOLS haxelibs
 $COMPOSE_TOOLS node_modules
-$COMPOSE_TOOLS compile
