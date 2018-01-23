@@ -80,6 +80,9 @@ class Logger
 
 	inline static function __init__()
 	{
+
+		this = js.npm.bunyan.Bunyan.createLogger(fields);
+		
 		var level = js.Node.process.env.get('LOG_LEVEL');
 		level = level != null ? level : 'info';
 		level = 'debug';
