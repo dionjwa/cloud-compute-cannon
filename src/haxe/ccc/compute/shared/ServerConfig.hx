@@ -67,6 +67,13 @@ class ServerConfig
 	public static var DISABLE_WORKER :Bool = false;
 
 	/**
+	 * The request logs are pretty verbose, and when
+	 * developing it can be useful to disable them.
+	 */
+	@NodeProcessVar
+	public static var DISABLE_REQUEST_LOGS :Bool = true;
+
+	/**
 	 * The host for the fluent log aggregator. If this
 	 * is not set, fluent logs will not be sent
 	 */

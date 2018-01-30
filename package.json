@@ -6,11 +6,13 @@
     "preview-github-docs": "docker run -it --rm -p 8081:8081 -v ${PWD}:/data -v ~/.grip:/.grip mbentley/grip --context=dionjwa/cloud-compute-cannon README.md 0.0.0.0:8081",
     "build": "./bin/compile",
     "clean": "./bin/clean",
+    "reload:metapage": "docker-compose -f docker-compose.tools.yml run metapage-livereload",
     "test": "./bin/install && ./bin/test",
     "test-scaling": "./bin/install && ./bin/test-scaling",
     "template.fluent.conf": "sed -e 's/host ::SERVER_HOSTNAME_PRIVATE::/host elasticsearch/' -e 's/::FLUENTD_WORKER_LOG_TAG_PREFIX::/docker.cloudcomputecannon.worker/' -e 's/::FLUENTD_NODEJS_BUNYAN_TAG_PREFIX::/docker.nodejs-bunyan/' etc/log/fluent.conf.template > etc/log/fluent.conf",
     "set-build:server": "rm -f build.hxml && ln -s etc/hxml/server-build.hxml build.hxml",
     "set-build:client-dashboard": "rm -f build.hxml && ln -s clients/dashboard/build-dev.hxml build.hxml",
+    "set-build:client-metaframe": "rm -f build.hxml && ln -s clients/metaframe/build-dev.hxml build.hxml",
     "set-build:lambda-autoscaling": "rm -f build.hxml && ln -s src/lambda-autoscaling/build.hxml build.hxml",
     "set-build:test-server-scaling": "rm -f build.hxml && ln -s test/services/local-scaling-server/build.hxml build.hxml",
     "set-build:test-server": "rm -f build.hxml && ln -s test/services/stand-alone-tester/build.hxml build.hxml",
@@ -33,6 +35,7 @@
     "bull-arena": "^2.2.0",
     "bunyan": "^1.8.5",
     "bunyan-format": "^0.2.1",
+    "bunyan-request": "^1.2.0",
     "busboy": "^0.2.14",
     "chokidar": "^1.6.1",
     "cli-color": "^1.1.0",
@@ -48,6 +51,7 @@
     "fluent-logger": "^2.4.3",
     "fs-extended": "^0.2.1",
     "http-proxy": "^1.16.2",
+    "material-ui": "^1.0.0-beta.27",
     "memwatch-next": "^0.3.0",
     "metaframe": "0.0.2",
     "moment-timezone": "^0.5.11",
@@ -70,9 +74,12 @@
     "through2": "^2.0.3",
     "ws": "^3.2.0"
   },
+  "optionalDependencies": {
+    "bufferutil": "^3.0.2"
+  },
   "devDependencies": {
     "express-livereload": "0.0.24",
-    "haxe-modular": "^0.6.0",
+    "haxe-modular": "^0.9.3",
     "react-hot-loader": "^3.0.0-beta.7",
     "redis-mock": "^0.20.0",
     "webpack": "^3.6.0",

@@ -33,7 +33,7 @@ class ServerPaths
 		app.use(Node.require('express-bunyan-logger')());
 
 		var cors = Node.require('cors')();
-		app.options('*', cors);
+		// app.options('*', cors);
 		app.use(cors);
 
 		app.use(cast js.npm.bodyparser.BodyParser.json({limit: '250mb'}));
@@ -47,6 +47,13 @@ class ServerPaths
 		app.get('/index.* ', function(req, res) {
 			res.send(indexPage);
 		});
+
+		if (!ServerConfig.DISABLE_REQUEST_LOGS) {
+			app.use(Node.require('bunyan-request')({
+				logger: ccc.compute.shared.Logger.log,
+				headerName: 'x-request-id'
+			}));
+		}
 
 		app.get('/version', function(req, res) {
 			var versionBlob = ServerCommands.version();
@@ -185,22 +192,6 @@ class ServerPaths
 					});
 			} else {
 				res.json({});
-			}
-		});
-
-		app.use(cast function(err :js.Error, req, res, next) {
-			var errObj = {
-				stack: try err.stack catch(e :Dynamic){null;},
-				error: err,
-				errorJson: try untyped err.toJSON() catch(e :Dynamic){null;},
-				errorString: try untyped err.toString() catch(e :Dynamic){null;},
-				message: try untyped err.message catch(e :Dynamic){null;},
-			}
-			Log.error(errObj);
-			try {
-				traceRed(Json.stringify(errObj, null, '  '));
-			} catch(e :Dynamic) {
-				traceRed(errObj);
 			}
 		});
 	}

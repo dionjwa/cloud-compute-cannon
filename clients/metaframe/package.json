@@ -1,0 +1,40 @@
+{
+  "name": "ccc-metaframe",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "libs": "mkdir -p ../../build/clients/metaframe && browserify src/libs.js -o ../../build/clients/metaframe/libs.js -d",
+    "serve": "livereloadx -s build",
+    "dev": "haxe build-dev.hxml",
+    "work": "npm run libs && npm run serve",
+    "build": "haxe build.hxml",
+    "minify": "node minify-all.js",
+    "clean": "shx rm -f ../../build/clients/metaframe",
+    "release:steps": "npm run clean && npm run libs && npm run build && npm run minify",
+    "release": "cross-env NODE_ENV=production npm run release:steps"
+  },
+  "author": "Dion Whitehead",
+  "license": "ISC",
+  "dependencies": {
+    "material-ui": "^1.0.0-beta.27",
+    "material-ui-icons": "^1.0.0-beta.17",
+    "prop-types": "^15.6.0",
+    "react": "^15.6.2",
+    "react-dom": "^15.6.2",
+    "react-rnd": "^7.3.0",
+    "redux": "^3.7.2"
+  },
+  "devDependencies": {
+    "browserify": "^14.4.0",
+    "cross-env": "^5.1.0",
+    "envify": "^4.1.0",
+    "haxe-modular": "^0.9.3",
+    "livereloadx": "^0.3.9",
+    "redux-logger": "^3.0.6",
+    "shx": "^0.2.2",
+    "uglify-js": "^3.1.4"
+  },
+  "optionalDependencies": {
+    "utf-8-validate": "^3.0.3"
+  }
+}

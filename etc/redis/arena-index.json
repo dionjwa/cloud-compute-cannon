@@ -1,0 +1,16 @@
+{
+	"queues": [
+		{
+			"name": "job_queue",
+			"port": 6381,
+			"host": "redis",
+			"hostId": "CCC process queue"
+		},
+		{
+			"name": "single_message_queue",
+			"port": 6381,
+			"host": "redis",
+			"hostId": "CCC process queue"
+		}
+	]
+}

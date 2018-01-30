@@ -1,0 +1,11 @@
+./clients/metaframe/build.hxml
+
+-D react_hot
+-debug
+
+-D WEBSOCKET_MIDDLEWARE_PORT=8080
+#--times
+#-D macro-times
+#
+--next
+-cmd rsync -av clients/metaframe/web/* build/clients/metaframe/

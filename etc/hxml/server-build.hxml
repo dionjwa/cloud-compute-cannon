@@ -2,7 +2,7 @@ etc/hxml/base-nodejs.hxml
 
 -cp src/lambda-autoscaling/src
 
-# -D PromhxExposeErrors
+-D PromhxExposeErrors
 # -D ENABLE_LOG_ServiceMonitorRequest
 
 -debug

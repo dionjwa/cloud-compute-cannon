@@ -21,7 +21,7 @@ services:
     working_dir: /app
     command: ["/bin/sh", "-c", "npm i"]
     volumes:
-      - ./node_modules:/app/node_modules
+      - ./node_modules_docker:/app/node_modules
       - ./package.json:/app/package.json
 
   #Build all
@@ -38,6 +38,7 @@ services:
       - ./clients:/app/clients
       - ./package.json:/app/package.json
       - ./.git:/app/.git
+      - ./node_modules_docker:/app/node_modules
 
   lambda-compile:
     image: dionjwa/haxe-watch:v0.7.3
@@ -113,3 +114,11 @@ services:
       - ./clients/dashboard:/app
     logging:
       driver: none
+
+  metapage-livereload:
+    image: dionjwa/haxe-watch:v0.7.3
+    command: ["/bin/bash", "-c", "chokidar --initial -c 'rsync -av clients/metaframe/web/* build/clients/metaframe/' clients/metaframe/**/*.css clients/metaframe/**/*.js clients/metaframe/**/*.html"]
+    working_dir: /app
+    volumes:
+      - ./:/app
+    # tty: true

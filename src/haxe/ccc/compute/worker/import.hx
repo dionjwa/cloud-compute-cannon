@@ -44,3 +44,5 @@ import ccc.compute.shared.ServerConfig;
 	using promhx.PromiseTools;
 	using ccc.compute.server.execution.JobTools;
 #end
+
+using util.StringUtil;

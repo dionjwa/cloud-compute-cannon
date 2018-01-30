@@ -10,7 +10,7 @@ import js.npm.ws.WebSocketServer;
 import js.npm.redis.RedisClient;
 
 using util.ArrayTools;
-using util.PromiseTools;
+using promhx.PromiseTools;
 using Lambda;
 
 class ServiceWebsockets
@@ -23,15 +23,17 @@ class ServiceWebsockets
 
 		//Listen to websocket connections.
 		_wss.on(WebSocketServerEvent.Connection, function(ws :WebSocket, req) {
-
 			var url :String = req.url;
 			Log.debug('Websocket connection request url=$url');
 			switch(url) {
 				case '/dashboard':
 					var dashboardConnection = new WebsocketConnectionDashboard(ws);
 					_injector.injectInto(dashboardConnection);
+				case '/metaframe':
+					var metaframeConnection = new WebsocketConnectionMetaframeJobMonitor(ws);
+					_injector.injectInto(metaframeConnection);
 				case null,'','/':
-					_jobMonitorConnections.handleWebsocketConnection(ws);
+					_jobMonitorFinishedConnections.handleWebsocketConnection(ws);
 				default:
 					Log.warn({message : 'Unhandled websocket connection for path, disconnecting', url: url});
 					ws.close(1011, 'No handler for this path=$url');
@@ -42,15 +44,15 @@ class ServiceWebsockets
 	@post
 	public function postInject()
 	{
-		_jobMonitorConnections = new WebsocketConnectionsJobMonitor();
-		_injector.injectInto(_jobMonitorConnections);
+		_jobMonitorFinishedConnections = new WebsocketConnectionsJobFinishedMonitor();
+		_injector.injectInto(_jobMonitorFinishedConnections);
 		initializeWebsocketServer();
 	}
 
 	public function new() {}
 
 	var _wss :WebSocketServer;
-	var _jobMonitorConnections :WebsocketConnectionsJobMonitor;
+	var _jobMonitorFinishedConnections :WebsocketConnectionsJobFinishedMonitor;
 
 	@inject public var _server :js.node.http.Server;
 	@inject public var _injector :minject.Injector;

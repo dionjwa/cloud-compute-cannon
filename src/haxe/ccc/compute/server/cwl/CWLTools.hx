@@ -10,9 +10,9 @@ class CWLTools
 			.pipe(function(containerAlias) {
 				var inputs = inputs == null ? [] :
 					inputs.keys().map(function(key) {
-						var input :ComputeInputSource = {
+						var input :DataBlob = {
 							name: key,
-							type: InputSource.InputInline,
+							source: DataSource.InputInline,
 							value: inputs.get(key)
 						};
 						return input;

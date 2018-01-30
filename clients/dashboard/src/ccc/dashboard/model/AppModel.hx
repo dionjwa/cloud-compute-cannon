@@ -3,12 +3,7 @@ package ccc.dashboard.model;
 class AppModel
 	implements IReducer<DashboardAction, AppState>
 {
-	public var initState :AppState = {
-		workers: {workers:{}},
-		jobs: {active:[], all:{}, finished:[]}
-	};
-
-	public var store :StoreMethods<ApplicationState>;
+	public var initState :AppState = {};
 
 	public function new() {}
 

@@ -1,0 +1,4 @@
+clients/shared/hxml/git-libs-client.hxml
+
+-lib hxnodejs-redis:git:https://github.com/dionjwa/hxnodejs-redis.git#3eef451
+-lib hxnodejs-redis-lua:git:https://github.com/dionjwa/hxnodejs-redis-lua.git#06fb878

@@ -12,6 +12,7 @@
 /build.hxml
 build
 node_modules
+node_modules_docker
 npm-debug.log
 platform
 ccc*.yml

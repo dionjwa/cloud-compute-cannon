@@ -50,8 +50,8 @@ class ServerTestTools
 
 		var outputValue1 = 'out${ShortId.generate()}';
 
-		var inputInline :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputInline :DataBlob = {
+			source: DataSource.InputInline,
 			value: inputValueInline,
 			name: inputName1
 		}
@@ -85,8 +85,8 @@ cat /$DIRECTORY_INPUTS/$inputName1 > /$DIRECTORY_OUTPUTS/$outputName2
 		var targetStdout = '$outputValueStdout\n$outputValueStdout\nfoo\n$outputValueStdout'.trim();
 		var targetStderr = '$outputValueStderr';
 		var scriptName = 'script.sh';
-		var inputScript :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputScript :DataBlob = {
+			source: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}
