@@ -18,6 +18,7 @@ ENV PORT 9000
 EXPOSE 9000
 
 ADD server $APP/server
+ADD clients $APP/clients
 ADD web $APP/web
 ADD etc $APP/etc
 COPY VERSION $APP/VERSION

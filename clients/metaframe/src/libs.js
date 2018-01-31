@@ -22,7 +22,9 @@
 
 	});
 
-	if (process.env.NODE_ENV !== 'production') {
+	console.log('process.env.NODE_ENV' + process.env.NODE_ENV);
+	console.log('process.env.TRAVIS' + process.env.TRAVIS);
+	if (process.env.NODE_ENV !== 'production' && process.env.TRAVIS !== '1') {
 		// enable hot-reload
 		require('haxe-modular');
 	}
