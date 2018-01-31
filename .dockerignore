@@ -1,3 +1,4 @@
+Dockerfile
 *.sublime-*
 .aws
 .DS_Store
@@ -5,6 +6,7 @@
 .env*
 .haxelib
 .terraform
+.iTerm*
 **terraform.state*
 **.tfvars
 /build.hxml

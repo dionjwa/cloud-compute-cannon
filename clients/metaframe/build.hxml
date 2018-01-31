@@ -6,16 +6,5 @@ clients/shared/hxml/react.hxml
 -cp clients/shared/src
 -cp clients/metaframe/src
 
--debug
-#If debugging/developing, comment these out
-# -D css_colors
-# -D react_hot
-# -D WEBSOCKET_MIDDLEWARE_PORT=8080
-#--times
-#-D macro-times
-
 -js build/clients/metaframe/index.js
 -main Main
-
---next
--cmd rsync -av clients/metaframe/web/* build/clients/metaframe/

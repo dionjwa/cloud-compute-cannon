@@ -17,4 +17,24 @@ class TestMetaframe
 				return true;
 			});
 	}
+
+	@timeout(2000)
+	public function testMetapageLibs() :Promise<Bool>
+	{
+		var url = 'http://${ServerTesterConfig.CCC}/metaframe/libs.js';
+		return RequestPromises.get(url)
+			.then(function(result) {
+				return true;
+			});
+	}
+
+	@timeout(2000)
+	public function testMetapageClientPackage() :Promise<Bool>
+	{
+		var url = 'http://${ServerTesterConfig.CCC}/metaframe/index.js';
+		return RequestPromises.get(url)
+			.then(function(result) {
+				return true;
+			});
+	}
 }

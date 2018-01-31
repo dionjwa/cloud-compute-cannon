@@ -10,6 +10,7 @@ services:
 
   ccc:
     image: "dionjwa/cloud-compute-cannon:0.1.50-test-08"
+    # image: "ccc:latest"
     ports:
       - "9000:9000"
     links:

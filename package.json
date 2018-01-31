@@ -12,7 +12,7 @@
     "template.fluent.conf": "sed -e 's/host ::SERVER_HOSTNAME_PRIVATE::/host elasticsearch/' -e 's/::FLUENTD_WORKER_LOG_TAG_PREFIX::/docker.cloudcomputecannon.worker/' -e 's/::FLUENTD_NODEJS_BUNYAN_TAG_PREFIX::/docker.nodejs-bunyan/' etc/log/fluent.conf.template > etc/log/fluent.conf",
     "set-build:server": "rm -f build.hxml && ln -s etc/hxml/server-build.hxml build.hxml",
     "set-build:client-dashboard": "rm -f build.hxml && ln -s clients/dashboard/build-dev.hxml build.hxml",
-    "set-build:client-metaframe": "rm -f build.hxml && ln -s clients/metaframe/build.hxml build.hxml",
+    "set-build:client-metaframe": "rm -f build.hxml && ln -s clients/metaframe/build-dev.hxml build.hxml",
     "set-build:lambda-autoscaling": "rm -f build.hxml && ln -s src/lambda-autoscaling/build.hxml build.hxml",
     "set-build:test-server-scaling": "rm -f build.hxml && ln -s test/services/local-scaling-server/build.hxml build.hxml",
     "set-build:test-server": "rm -f build.hxml && ln -s test/services/stand-alone-tester/build.hxml build.hxml",

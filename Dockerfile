@@ -1,57 +1,107 @@
-FROM ubuntu:14.04
-MAINTAINER Dion Whitehead Amago
+################################################
+# Docker multi-stage build
+# Clients and server are built separately
+# Then smallest build artifacts are combined at
+# the final step.
+################################################
 
-# Haxe environment variables
-ENV HAXE_STD_PATH /root/haxe/std/
-ENV PATH /root/haxe/:$PATH
-# Neko environment variables
-ENV NEKOPATH /root/neko/
-ENV LD_LIBRARY_PATH /root/neko/
-ENV PATH /root/neko/:$PATH
+################################################
+# Build metaframe client libs and resources
+################################################
+FROM dionjwa/haxe-watch:v0.10.0 as builder-metaframe-builder
 
-ENV HAXE_DOWNLOAD_URL http://haxe.org/website-content/downloads/3.3.0-rc.1/downloads/haxe-3.3.0-rc.1-linux64.tar.gz
+# Package the npm dependencies and package with browserify into a single file (libs.js)
+WORKDIR /app/clients/metaframe
+COPY ./clients/metaframe/package.json /app/clients/metaframe/package.json
+# This needs the global flag so that haxe-modular can be reached
+# when in a parent directory at the haxe build step (last)
+RUN npm install
+RUN npm install -g haxe-modular
 
-# Dependencies
-RUN apt-get update && \
-	apt-get install -y wget curl g++ g++-multilib libgc-dev git python build-essential && \
-	curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash - && \
-	sudo apt-get -y install nodejs && \
-	apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-	mkdir /root/haxe && \
-	wget -O - $HAXE_DOWNLOAD_URL | tar xzf - --strip=1 -C "/root/haxe" && \
-	mkdir /root/neko && \
-	wget -O - http://nekovm.org/_media/neko-2.0.0-linux64.tar.gz | tar xzf - --strip=1 -C "/root/neko"
+# Add web media files
+COPY ./clients/metaframe/web /app/build/clients/metaframe
+
+COPY ./clients/metaframe/src/libs.js /app/clients/metaframe/src/libs.js
+RUN npm run libs
+
+COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
+COPY ./clients/shared/hxml /app/clients/shared/hxml
+
+WORKDIR /app
+RUN haxelib newrepo
+RUN haxelib --always install ./clients/metaframe/build.hxml
+
+COPY ./clients/metaframe/src /app/clients/metaframe/src
+COPY ./clients/shared/src /app/clients/shared/src
+RUN haxe clients/metaframe/build.hxml
+
+
+################################################
+# Build server npm libraries
+################################################
+
+FROM node:8.6.0-alpine as builder-server-npm
+
+WORKDIR /app
+
+RUN apk update
+RUN apk add g++ gcc make python linux-headers udev git
+ADD package.json /app/package.json
+RUN npm install --quiet
+
+
+################################################
+# Build all haxe (works)
+################################################
+
+FROM haxe:3.4.4-alpine3.7 as builder-haxe-all
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh
+
+# Install the haxelibs
+COPY ./clients/shared/hxml /app/clients/shared/hxml
+COPY ./src/lambda-autoscaling/build.hxml /app/src/lambda-autoscaling/build.hxml
+COPY ./etc/hxml /app/etc/hxml
+COPY ./test/services/stand-alone-tester/build.hxml /app/test/services/stand-alone-tester/build.hxml
+COPY ./test/services/local-scaling-server/build.hxml /app/test/services/local-scaling-server/build.hxml
+WORKDIR /app
+RUN haxelib newrepo
+RUN haxelib --always install ./etc/hxml/build-all.hxml
+
+# Add the src, and compile all
+COPY ./clients/metaframe/src /app/clients/metaframe/src
+COPY ./clients/dashboard/src /app/clients/dashboard/src
+COPY ./clients/shared/src /app/clients/shared/src
+COPY ./src /app/src
+COPY ./test /app/test
+COPY ./package.json /app/package.json
+COPY ./.git /app/.git
+COPY ./src/web /app/build/web
+RUN haxe etc/hxml/build-all.hxml
+
+
+################################################
+# Final image build
+################################################
+
+FROM node:8.6.0-alpine
+MAINTAINER Dion Amago Whitehead
 
 ENV APP /app
 RUN mkdir -p $APP
 WORKDIR $APP
 
-RUN haxelib newrepo
+RUN npm install -g forever && touch $APP/.foreverignore
 
-RUN npm install -g forever nodemon bunyan
-
-#Only install npm packages if the package.json changes
-ADD ./package.json $APP/package.json
-RUN npm install
-
-
-#Only install haxe packages if the package.json changes
-ADD ./etc/hxml/base.hxml $APP/etc/hxml/base.hxml
-ADD ./etc/hxml/base-nodejs.hxml $APP/etc/hxml/base-nodejs.hxml
-RUN npm run install-dependencies
-
-COPY ./ $APP/
-
-RUN	haxe etc/hxml/build-all.hxml
+COPY --from=builder-server-npm /app/node_modules /app/node_modules
+COPY --from=builder-haxe-all /app/build/server /app/server
+COPY --from=builder-haxe-all /app/build/test /app/test
+COPY --from=builder-haxe-all /app/build/local-scaling-server /app/local-scaling-server
+COPY --from=builder-haxe-all /app/build/web /app/web
+COPY --from=builder-metaframe-builder /app/build/clients/metaframe /app/clients/metaframe
 
 ENV PORT 9000
-EXPOSE $PORT
-EXPOSE 9001
-EXPOSE 9002
+EXPOSE 9000
 
-WORKDIR $APP/build
-
-#Do not watch the entire tree, just that file. Limit retries to 5
-CMD forever -m 5 --watchDirectory server server/cloud-compute-cannon-server.js
-
-
+CMD forever server/cloud-compute-cannon-server.js

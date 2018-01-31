@@ -4,4 +4,6 @@ etc/hxml/server-build.hxml
 
 -D PromhxExposeErrors
 
--cmd node build/server/cloud-compute-cannon-server.js
+# -cmd rsync -a src/web build/
+# 
+# -cmd node build/server/cloud-compute-cannon-server.js

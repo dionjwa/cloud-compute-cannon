@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "material-ui": "^1.0.0-beta.27",
+    "redux-logger": "^3.0.6",
     "material-ui-icons": "^1.0.0-beta.17",
     "prop-types": "^15.6.0",
     "react": "^15.6.2",
@@ -29,7 +30,6 @@
     "envify": "^4.1.0",
     "haxe-modular": "^0.9.3",
     "livereloadx": "^0.3.9",
-    "redux-logger": "^3.0.6",
     "shx": "^0.2.2",
     "uglify-js": "^3.1.4"
   },
