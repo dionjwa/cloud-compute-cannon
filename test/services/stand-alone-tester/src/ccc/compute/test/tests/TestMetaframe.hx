@@ -1,5 +1,6 @@
 package ccc.compute.test.tests;
 
+@only
 class TestMetaframe
 	extends haxe.unit.async.PromiseTest
 {
@@ -12,6 +13,26 @@ class TestMetaframe
 	public function testMetapage() :Promise<Bool>
 	{
 		var url = 'http://${ServerTesterConfig.CCC}/metaframe/';
+		return RequestPromises.get(url)
+			.then(function(result) {
+				return true;
+			});
+	}
+
+	@timeout(2000)
+	public function testMetapageLibs() :Promise<Bool>
+	{
+		var url = 'http://${ServerTesterConfig.CCC}/metaframe/libs.js';
+		return RequestPromises.get(url)
+			.then(function(result) {
+				return true;
+			});
+	}
+
+	@timeout(2000)
+	public function testMetapageClientPackage() :Promise<Bool>
+	{
+		var url = 'http://${ServerTesterConfig.CCC}/metaframe/index.js';
 		return RequestPromises.get(url)
 			.then(function(result) {
 				return true;
