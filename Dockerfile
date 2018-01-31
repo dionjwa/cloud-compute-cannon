@@ -28,10 +28,12 @@ WORKDIR $APP
 
 RUN haxelib newrepo
 
+RUN npm install -g forever nodemon bunyan
+
 #Only install npm packages if the package.json changes
 ADD ./package.json $APP/package.json
 RUN npm install
-RUN npm install -g forever nodemon bunyan
+
 
 #Only install haxe packages if the package.json changes
 ADD ./etc/hxml/base.hxml $APP/etc/hxml/base.hxml
