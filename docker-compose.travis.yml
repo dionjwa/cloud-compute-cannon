@@ -14,7 +14,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       #This volume is needed for running computes locally
       - ccc-local-storage:/app/ccc-local-storage
-      # - ./build/server:/app/server
     command: ["node", "server/cloud-compute-cannon-server.js"]
     links:
       - redis1
@@ -43,7 +42,6 @@ services:
       - TEST=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./build/test:/app/test
     links:
       - ccc.local
       - redis1
@@ -64,7 +62,6 @@ services:
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./build/local-scaling-server:/app/local-scaling-server
     environment:
       - PORT=4015
       - REDIS_HOST=redis1
