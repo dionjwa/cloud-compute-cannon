@@ -30,7 +30,9 @@ class ServerPaths
 		var app = Express.GetApplication();
 		injector.map(Application).toValue(app);
 
-		app.use(Node.require('express-bunyan-logger')());
+		if (!ServerConfig.DISABLE_REQUEST_LOGS) {
+			app.use(Node.require('express-bunyan-logger')());
+		}
 
 		var cors = Node.require('cors')();
 		// app.options('*', cors);
