@@ -16,4 +16,7 @@ test/services/local-scaling-server/build.hxml
 --next
 src/lambda-autoscaling/build.hxml
 
+-cmd echo "Building metaframe client"
+--next
+clients/metaframe/build.hxml
 

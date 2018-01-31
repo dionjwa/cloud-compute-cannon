@@ -2,7 +2,7 @@ package ccc;
 
 //https://nodejs.org/api/buffer.html
 @:enum
-abstract InputEncoding(String) to String from String {
+abstract DataEncoding(String) to String from String {
 	//Default
 	var utf8 = 'utf8';
 	var base64 = 'base64';

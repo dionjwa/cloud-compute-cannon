@@ -4,7 +4,7 @@ import haxe.remoting.JsonRpc;
 
 import js.npm.ws.WebSocket;
 
-class WebsocketConnectionsJobMonitor
+class WebsocketConnectionsJobFinishedMonitor
 {
 	public function handleWebsocketConnection(ws :WebSocket)
 	{

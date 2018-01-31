@@ -38,12 +38,12 @@ class TestServiceBatchCompute extends TestComputeBase
 					cmd: ['/bin/bash', '/${DIRECTORY_INPUTS}/$scriptName'],
 					inputs: [
 						{
-							type: InputSource.InputUrl,
+							type: DataSource.InputUrl,
 							value: INPUT_JSON_URL,
 							name: inputName
 						},
 						{
-							type: InputSource.InputInline,
+							type: DataSource.InputInline,
 							value: scriptValue,
 							name: scriptName
 						}

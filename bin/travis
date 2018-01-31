@@ -6,6 +6,8 @@ echo "TRAVIS_BRANCH=$TRAVIS_BRANCH"
 echo "TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST"
 echo "TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG"
 
+TRAVIS=1
+
 GIT_TAG=`git rev-parse HEAD`
 if [ ! -z "$TRAVIS_COMMIT" ]; then
 	GIT_TAG=$TRAVIS_COMMIT
@@ -33,7 +35,7 @@ bin/clean
 bin/build-docker-images
 
 # Only run the tests on PRs
-if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "true" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/cloud-compute-cannon" ];
+if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/cloud-compute-cannon" ];
 	then
 		echo "Running tests"
 		TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG TRAVIS=1 PWD=$PWD VERSION=$GIT_TAG docker-compose -f docker-compose.travis.yml run --rm ccc.tests
@@ -41,7 +43,7 @@ fi
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/cloud-compute-cannon" ] && [ "v$NPM_VERSION" == "$TRAVIS_TAG" ];
 	then
-		echo "Publishing to dockerhub: dionjwa/cloud-compute-cannon${NPM_VERSION}"
+		echo "Publishing to dockerhub: dionjwa/cloud-compute-cannon:${NPM_VERSION}"
 		./bin/publish-docker
 	else
 		echo "No tag, not publishing image to dockerhub"

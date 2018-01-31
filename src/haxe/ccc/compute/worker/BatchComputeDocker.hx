@@ -431,6 +431,7 @@ class BatchComputeDocker
 		switch(job.image.type) {
 			case Image:
 				var dockerImage = job.image.value;
+				dockerImage = dockerImage.isEmpty() ? Constants.DOCKER_IMAGE_DEFAULT : dockerImage;
 				var pull_options = job.image.pull_options != null ? job.image.pull_options : {};
 				return ensureDockerImage(docker, dockerImage, log, pull_options)
 					.errorPipe(function(err) {

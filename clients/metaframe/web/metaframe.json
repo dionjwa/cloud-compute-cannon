@@ -1,0 +1,29 @@
+{
+	"version": "0.1-alpha",
+	"inputs": [
+		{
+			"name": "docker:image",
+			"type": "string",
+			"value": "docker.io/busybox:latest"
+		},
+		{
+			"name": "docker:command",
+			"type": "json",
+			"value": ["/bin/sh", "-c", "mkdir -p /outputs && echo foo > /outputs/foo && echo thisGoesToStdout && >&2 echo errorGoesToStdErr"]
+		}
+	],
+	"outputs": [
+		{
+			"name": "docker:error",
+			"type": "string"
+		},
+		{
+			"name": "docker:stdout",
+			"type": "string"
+		},
+		{
+			"name": "docker:stderr",
+			"type": "string"
+		}
+	]
+}

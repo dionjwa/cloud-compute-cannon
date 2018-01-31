@@ -33,8 +33,8 @@ class TestJobs extends ServerAPITestBase
 exit 0
 ';
 		var scriptName = 'script.sh';
-		var input :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var input :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}
@@ -67,8 +67,8 @@ exit 0
 exit $exitCode
 ';
 		var scriptName = 'script.sh';
-		var input :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var input :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}
@@ -159,8 +159,8 @@ echo "$outputValueStdout"
 ';
 		var compareOutput = '$outputValueStdout\n$outputValueStdout\nfoo\n$outputValueStdout'.trim();
 		var scriptName = 'script.sh';
-		var input :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var input :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}
@@ -204,8 +204,8 @@ echo "$outputValueStdout"
 echo "$outputValueStderr" >>/dev/stderr
 ';
 		var scriptName = 'script.sh';
-		var input :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var input :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}
@@ -255,8 +255,8 @@ echo "$outputValueStderr" >>/dev/stderr
 		var inputValue = 'in${Std.int(Math.random() * 100000000)}';
 		var inputName = 'in${Std.int(Math.random() * 100000000)}';
 		var proxy = ServerTestTools.getProxy(_serverHostRPCAPI);
-		var input :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var input :DataSource = {
+			type: DataSource.InputInline,
 			value: inputValue,
 			name: inputName
 		}
@@ -295,8 +295,8 @@ echo "$outputValueStderr" >>/dev/stderr
 echo "$outputValue" > /$DIRECTORY_OUTPUTS/$outputName
 ';
 		var scriptName = 'script.sh';
-		var input :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var input :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}
@@ -334,22 +334,22 @@ echo "$outputValue" > /$DIRECTORY_OUTPUTS/$outputName
 		var inputName1 = 'in${Std.int(Math.random() * 100000000)}';
 		var outputName1 = 'out${Std.int(Math.random() * 100000000)}';
 
-		var inputBinaryValue1 :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputBinaryValue1 :DataSource = {
+			type: DataSource.InputInline,
 			value: bytes1.toString('base64'),
 			name: inputName1,
-			encoding: InputEncoding.base64
+			encoding: DataEncoding.base64
 		}
 
 		var bytes2 = new Buffer('somestring${Std.int(Math.random() * 100000000)}', 'utf8');
 		var inputName2 = 'in${Std.int(Math.random() * 100000000)}';
 		var outputName2 = 'out${Std.int(Math.random() * 100000000)}';
 
-		var inputBinaryValue2 :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputBinaryValue2 :DataSource = {
+			type: DataSource.InputInline,
 			value: bytes2.toString('base64'),
 			name: inputName2,
-			encoding: InputEncoding.base64
+			encoding: DataEncoding.base64
 		}
 
 		//A script that copies the inputs to outputs
@@ -359,11 +359,11 @@ cp /$DIRECTORY_INPUTS/$inputName1 /$DIRECTORY_OUTPUTS/$outputName1
 cp /$DIRECTORY_INPUTS/$inputName2 /$DIRECTORY_OUTPUTS/$outputName2
 ';
 		var scriptName = 'script.sh';
-		var inputScript :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputScript :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName,
-			encoding: InputEncoding.utf8 //Default
+			encoding: DataEncoding.utf8 //Default
 		}
 		var proxy = ServerTestTools.getProxy(_serverHostRPCAPI);
 		var random = ShortId.generate();
@@ -732,14 +732,14 @@ exit 0
 
 // 		var outputValue1 = 'out${ShortId.generate()}';
 
-// 		var inputInline :ComputeInputSource = {
-// 			type: InputSource.InputInline,
+// 		var inputInline :DataSource = {
+// 			type: DataSource.InputInline,
 // 			value: inputValueInline,
 // 			name: inputName2
 // 		}
 
-// 		var inputUrl :ComputeInputSource = {
-// 			type: InputSource.InputUrl,
+// 		var inputUrl :DataSource = {
+// 			type: DataSource.InputUrl,
 // 			value: 'https://www.google.com/textinputassistant/tia.png',
 // 			name: inputName3
 // 		}
@@ -766,8 +766,8 @@ exit 0
 // 		var targetStdout = '$outputValueStdout\n$outputValueStdout\nfoo\n$outputValueStdout'.trim();
 // 		var targetStderr = '$outputValueStderr';
 // 		var scriptName = 'script.sh';
-// 		var inputScript :ComputeInputSource = {
-// 			type: InputSource.InputInline,
+// 		var inputScript :DataSource = {
+// 			type: DataSource.InputInline,
 // 			value: script,
 // 			name: scriptName
 // 		}

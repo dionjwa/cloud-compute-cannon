@@ -1,6 +1,8 @@
 package ccc;
 
+#if (nodejs && !macro && !clientjs)
 import js.npm.docker.Docker;
+#end
 
 typedef DockerImageSource = {
 	var type :DockerImageSourceType;

@@ -33,119 +33,120 @@ typedef RunContainerResultTurbo = {
  */
 class BatchComputeDockerTurbo
 {
-	public static function executeTurboJob(redis :RedisClient, job :BatchProcessRequestTurbo, docker :Docker, machineId :MachineId, log :AbstractLogger) :Promise<JobResultsTurbo>
-	{
-		Assert.notNull(job);
-		var containerId = null;
-		if (job.id == null) {
-			job.id = js.npm.shortid.ShortId.generate();
-		}
-		var jobId = job.id;
-		log = log.child({jobId:jobId, message:'TurboJob'});
-		log.debug({});
+	// public static function executeTurboJob(redis :RedisClient, job :BatchProcessRequestTurbo, docker :Docker, machineId :MachineId, log :AbstractLogger) :Promise<JobResultsTurbo>
+	// {
+	// 	Assert.notNull(job);
+	// 	var containerId = null;
+	// 	if (job.id == null) {
+	// 		job.id = js.npm.shortid.ShortId.generate();
+	// 	}
+	// 	var jobId = job.id;
+	// 	log = log.child({jobId:jobId, message:'TurboJob'});
+	// 	log.debug({});
 
-		var turboJobs :TurboJobs = redis;
-		var startTime = Date.now();
-		var maxJobDurationSeconds = job.parameters != null && job.parameters.maxDuration != null ? job.parameters.maxDuration : TURBO_JOB_MAX_TIME_SECONDS_DEFAULT;
-		turboJobs.jobStart(jobId, maxJobDurationSeconds, machineId);
+	// 	var turboJobs :TurboJobs = redis;
+	// 	var startTime = Date.now();
+	// 	var maxJobDurationSeconds = job.parameters != null && job.parameters.maxDuration != null ? job.parameters.maxDuration : TURBO_JOB_MAX_TIME_SECONDS_DEFAULT;
+	// 	turboJobs.jobStart(jobId, maxJobDurationSeconds, machineId);
 
-		job.image = job.image != null ? job.image : (job.CreateContainerOptions != null ? job.CreateContainerOptions.Image : Constants.DOCKER_IMAGE_DEFAULT);
+	// 	job.image = job.image.isEmpty() ? (job.CreateContainerOptions != null && !job.CreateContainerOptions.Image.isEmpty() ? job.CreateContainerOptions.Image : Constants.DOCKER_IMAGE_DEFAULT) : job.image;
 
-		var containerInputsPath = job.inputsPath == null ? '/${DIRECTORY_INPUTS}' : job.inputsPath;
-		var containerOutputsPath = job.outputsPath == null ? '/${DIRECTORY_OUTPUTS}' : job.outputsPath;
+	// 	traceYellow('job.image=${job.image}');
+	// 	var containerInputsPath = job.inputsPath == null ? '/${DIRECTORY_INPUTS}' : job.inputsPath;
+	// 	var containerOutputsPath = job.outputsPath == null ? '/${DIRECTORY_OUTPUTS}' : job.outputsPath;
 
-		var ensureImage = BatchComputeDocker.ensureDockerImage.bind(docker, job.image, log, job.imagePullOptions);
-		var runContainer = runContainerTurbo.bind(job, docker, log);
-		var getOutputs = getOutputsTurbo2.bind(job, _, log);
+	// 	var ensureImage = BatchComputeDocker.ensureDockerImage.bind(docker, job.image, log, job.imagePullOptions);
+	// 	var runContainer = runContainerTurbo.bind(job, docker, log);
+	// 	var getOutputs = getOutputsTurbo2.bind(job, _, log);
 
-		var resultBlob :RunContainerResultTurbo = null;
-		var error :Dynamic;
-		var outputFiles :DynamicAccess<String> = null;
+	// 	var resultBlob :RunContainerResultTurbo = null;
+	// 	var error :Dynamic;
+	// 	var outputFiles :DynamicAccess<String> = null;
 
-		var stats :JobResultsTurboStats = {
-			copyInputs: null,
-			ensureImage: null,
-			containerCreation: null,
-			containerExecution: null,
-			copyOutputs: null,
-			copyLogs: null,
-			total: null
-		}
+	// 	var stats :JobResultsTurboStats = {
+	// 		copyInputs: null,
+	// 		ensureImage: null,
+	// 		containerCreation: null,
+	// 		containerExecution: null,
+	// 		copyOutputs: null,
+	// 		copyLogs: null,
+	// 		total: null
+	// 	}
 
-		return Promise.promise(true)
-			//Start doing the job stuff
-			//Pipe logs to file streams
-			//Copy the files to the remote worker
-			.pipe(function(_) {
-				return ensureImage()
-					.then(function(_) {
-						stats.ensureImage = DateFormatTools.getShortStringOfDateDiff(startTime, Date.now());
-						return true;
-					});
-			})
-			.pipe(function(_) {
-				var startTimeContainer = Date.now();
-				return runContainer()
-					.pipe(function(results) {
-						log.trace({message:'container run finished', results:results});
-						stats.containerExecution = DateFormatTools.getShortStringOfDateDiff(startTimeContainer, Date.now());
-						stats.containerCreation = results.containerCreateTime;
-						stats.copyLogs = results.copyLogsTime;
-						stats.copyInputs = results.copyInputsTime;
-						resultBlob = results;
-						if (resultBlob.error != null) {
-							log.warn({error:resultBlob.error, message: 'Error running container'});
-						}
-						error = resultBlob.error;
+	// 	return Promise.promise(true)
+	// 		//Start doing the job stuff
+	// 		//Pipe logs to file streams
+	// 		//Copy the files to the remote worker
+	// 		.pipe(function(_) {
+	// 			return ensureImage()
+	// 				.then(function(_) {
+	// 					stats.ensureImage = DateFormatTools.getShortStringOfDateDiff(startTime, Date.now());
+	// 					return true;
+	// 				});
+	// 		})
+	// 		.pipe(function(_) {
+	// 			var startTimeContainer = Date.now();
+	// 			return runContainer()
+	// 				.pipe(function(results) {
+	// 					log.trace({message:'container run finished', results:results});
+	// 					stats.containerExecution = DateFormatTools.getShortStringOfDateDiff(startTimeContainer, Date.now());
+	// 					stats.containerCreation = results.containerCreateTime;
+	// 					stats.copyLogs = results.copyLogsTime;
+	// 					stats.copyInputs = results.copyInputsTime;
+	// 					resultBlob = results;
+	// 					if (resultBlob.error != null) {
+	// 						log.warn({error:resultBlob.error, message: 'Error running container'});
+	// 					}
+	// 					error = resultBlob.error;
 
-						function removeContainer() {
-							if (results.container != null) {
-								log.trace({message:'removing container'});
-								DockerPromises.removeContainer(results.container, {force:true, v:true})
-									.catchError(function(err) {
-										log.warn({error:err, message:'Failed to remove container'});
-									})
-									.then(function(_) {
-										log.trace({message:'removed container'});
-										return true;
-									});
-							}
-						}
+	// 					function removeContainer() {
+	// 						if (results.container != null) {
+	// 							log.trace({message:'removing container'});
+	// 							DockerPromises.removeContainer(results.container, {force:true, v:true})
+	// 								.catchError(function(err) {
+	// 									log.warn({error:err, message:'Failed to remove container'});
+	// 								})
+	// 								.then(function(_) {
+	// 									log.trace({message:'removed container'});
+	// 									return true;
+	// 								});
+	// 						}
+	// 					}
 
-						if (resultBlob != null && error == null && job.ignoreOutputs != true) {
-							var startTimeOutputs = Date.now();
-							log.trace({message:'Getting outputs'});
-							return getOutputs(results.container)
-								.then(function(files) {
-									log.trace({message:'Got outputs'});
-									stats.copyOutputs = DateFormatTools.getShortStringOfDateDiff(startTimeOutputs, Date.now());
-									outputFiles = files;
-									removeContainer();
-									return true;
-								});
-						} else {
-							removeContainer();
-							stats.copyOutputs = '0';
-							return Promise.promise(true);
-						}
-					});
-			})
-			.then(function(_) {
-				var jobResultsFinal :JobResultsTurbo = {
-					id: jobId,
-					outputs: outputFiles,
-					error: error,
-					stdout: resultBlob != null ? resultBlob.stdout : [],
-					stderr: resultBlob != null ? resultBlob.stderr : [],
-					exitCode: resultBlob != null ? resultBlob.exitCode : -1,
-					stats: stats
-				};
-				stats.total = DateFormatTools.getShortStringOfDateDiff(startTime, Date.now());
-				turboJobs.jobEnd(jobId);
-				log.trace({message:'Finished turbo job'});
-				return jobResultsFinal;
-			});
-	}
+	// 					if (resultBlob != null && error == null && job.ignoreOutputs != true) {
+	// 						var startTimeOutputs = Date.now();
+	// 						log.trace({message:'Getting outputs'});
+	// 						return getOutputs(results.container)
+	// 							.then(function(files) {
+	// 								log.trace({message:'Got outputs'});
+	// 								stats.copyOutputs = DateFormatTools.getShortStringOfDateDiff(startTimeOutputs, Date.now());
+	// 								outputFiles = files;
+	// 								removeContainer();
+	// 								return true;
+	// 							});
+	// 					} else {
+	// 						removeContainer();
+	// 						stats.copyOutputs = '0';
+	// 						return Promise.promise(true);
+	// 					}
+	// 				});
+	// 		})
+	// 		.then(function(_) {
+	// 			var jobResultsFinal :JobResultsTurbo = {
+	// 				id: jobId,
+	// 				outputs: outputFiles,
+	// 				error: error,
+	// 				stdout: resultBlob != null ? resultBlob.stdout : [],
+	// 				stderr: resultBlob != null ? resultBlob.stderr : [],
+	// 				exitCode: resultBlob != null ? resultBlob.exitCode : -1,
+	// 				stats: stats
+	// 			};
+	// 			stats.total = DateFormatTools.getShortStringOfDateDiff(startTime, Date.now());
+	// 			turboJobs.jobEnd(jobId);
+	// 			log.trace({message:'Finished turbo job'});
+	// 			return jobResultsFinal;
+	// 		});
+	// }
 
 	public static function executeTurboJobV2(redis :RedisClient, job :BatchProcessRequestTurboV2, docker :Docker, machineId :MachineId, log :AbstractLogger) :Promise<JobResultsTurboV2>
 	{
@@ -163,7 +164,7 @@ class BatchComputeDockerTurbo
 		var maxJobDurationSeconds = job.parameters != null && job.parameters.maxDuration != null ? job.parameters.maxDuration : TURBO_JOB_MAX_TIME_SECONDS_DEFAULT;
 		turboJobs.jobStart(jobId, maxJobDurationSeconds, machineId);
 
-		job.image = job.image != null ? job.image : (job.CreateContainerOptions != null ? job.CreateContainerOptions.Image : Constants.DOCKER_IMAGE_DEFAULT);
+		job.image = job.image.isEmpty() ? (job.CreateContainerOptions != null && !job.CreateContainerOptions.Image.isEmpty() ? job.CreateContainerOptions.Image : Constants.DOCKER_IMAGE_DEFAULT) : job.image;
 
 		var containerInputsPath = job.inputsPath == null ? '/${DIRECTORY_INPUTS}' : job.inputsPath;
 		var containerOutputsPath = job.outputsPath == null ? '/${DIRECTORY_OUTPUTS}' : job.outputsPath;
@@ -174,7 +175,7 @@ class BatchComputeDockerTurbo
 
 		var resultBlob :RunContainerResultTurbo = null;
 		var error :Dynamic;
-		var outputFiles :Array<ComputeInputSource> = null;
+		var outputFiles :Array<DataBlob> = null;
 
 		var stats :JobResultsTurboStats = {
 			copyInputs: null,
@@ -271,7 +272,7 @@ class BatchComputeDockerTurbo
 		return tarStream;
 	}
 
-	static function createTarStreamFromFilesV2(files :Array<ComputeInputSource>) :TarPack
+	static function createTarStreamFromFilesV2(files :Array<DataBlob>) :TarPack
 	{
 		var tarStream = TarStream.pack();
 		for (file in files) {
@@ -519,7 +520,7 @@ class BatchComputeDockerTurbo
 					noOverwriteDirNonDir: 'true'
 				}
 
-				var modifiedPathInputs :Array<ComputeInputSource> = null;
+				var modifiedPathInputs :Array<DataBlob> = null;
 				if (job.inputs != null && job.inputs.length > 0) {
 					modifiedPathInputs = [];
 					for (input in job.inputs) {
@@ -527,7 +528,7 @@ class BatchComputeDockerTurbo
 							name: '$containerInputsPath/${input.name}',
 							encoding: input.encoding,
 							value: input.value,
-							type: input.type
+							source: input.source
 						});
 					}
 				}
@@ -559,10 +560,8 @@ class BatchComputeDockerTurbo
 
 					var promise = new DeferredPromise();
 
-					var timeout :Int = job.parameters.maxDuration;
-					if (timeout == null) {
-						timeout = DEFAULT_MAX_JOB_TIME_MS;
-					}
+					var timeout :Int = job.parameters != null && job.parameters.maxDuration != null
+						? job.parameters.maxDuration : DEFAULT_MAX_JOB_TIME_MS;
 					var timeoutId = Node.setTimeout(function() {
 						log.warn({message:'Timed out'});
 						result.timedOut = true;
@@ -666,7 +665,7 @@ class BatchComputeDockerTurbo
 			});
 	}
 
-	static function getOutputsTurboV2(job :BatchProcessRequestTurboV2, container :DockerContainer, log :AbstractLogger) :Promise<Array<ComputeInputSource>>
+	static function getOutputsTurboV2(job :BatchProcessRequestTurboV2, container :DockerContainer, log :AbstractLogger) :Promise<Array<DataBlob>>
 	{
 		var path = job.outputsPath != null ? job.outputsPath : '/${DIRECTORY_OUTPUTS}';
 		return cast DockerDataTools.getDataFilesFromContainerV2(container, path)

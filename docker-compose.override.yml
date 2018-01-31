@@ -20,11 +20,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./build/server:/app/server
-      - ./clients/dashboard/build:/app/clients/dashboard
+      - ./build/clients:/app/clients
       - ./src/web:/app/web
-      - ./ccc-local-storage:/app/ccc- local-storage
+      - ./ccc-local-storage:/app/ccc-local-storage
       - ./package.json:/app/package.json
-      - ./node_modules:/app/node_modules
+      - ./node_modules_docker:/app/node_modules
     environment:
       - PORT=9000
       - STORAGE_HTTP_PREFIX=http://ccc.local
@@ -33,6 +33,7 @@ services:
       - FLUENT_HOST=fluentd
       - LOG_LEVEL=debug
       - WORKER_STATUS_CHECK_INTERVAL_SECONDS=20
+      - DISABLE_REQUEST_LOGS=true
     labels:
       ccc.type: "worker"
       ccc.origin: "docker-compose"
@@ -41,7 +42,7 @@ services:
   ccc.tests:
     image: dionjwa/haxe-watch:v0.7.3
     working_dir: /app
-    # command: ["nodemon", "-L", "--delay", "5", "--watch", "build/test", "--watch", "build/server", "build/test/cloud-compute-cannon-tester.js"]
+    # Switch these when developing locally
     # command: ["nodemon", "-L", "--watch", "build/test", "build/test/cloud-compute-cannon-tester.js"]
     command: ["node", "build/test/cloud-compute-cannon-tester.js"]
     environment:
@@ -54,7 +55,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./build:/app/build
-      - ./node_modules:/app/node_modules
+      - ./node_modules_docker:/app/node_modules
     links:
       - ccc.local
       - redis
@@ -84,6 +85,18 @@ services:
     logging:
         driver: none
 
+  redis-bull:
+    cpu_shares: 256
+    image: mixmaxhq/arena
+    volumes:
+      - ./etc/redis/arena-index.json:/opt/arena/src/server/config/index.json
+    links:
+      - redis
+    ports:
+      - "4567:4567"
+    logging:
+        driver: none
+
   # Replicates (mocks) e.g. AWS AutoScalingGroups, by creating and destroying
   # workers based on the desired capacity.
   # Also used to test worker failure
@@ -95,7 +108,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./build/local-scaling-server:/app/local-scaling-server
-      - ./node_modules:/app/node_modules
+      - ./node_modules_docker:/app/node_modules
     environment:
       - PORT=4015
       - REDIS_HOST=redis

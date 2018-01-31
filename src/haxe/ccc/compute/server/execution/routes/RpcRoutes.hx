@@ -445,7 +445,7 @@ class RpcRoutes
 				var val = Reflect.field(job.inputs, inputField);
 				newJob.inputs.push({
 					name: inputField,
-					type: InputSource.InputInline,//Default
+					source: DataSource.InputInline,//Default
 					value: val
 				});
 			}
@@ -515,7 +515,7 @@ class RpcRoutes
 		?pull_options :Dynamic,
 #end
 		?command :Array<String>,
-		?inputs :Array<ComputeInputSource>,
+		?inputs :Array<DataBlob>,
 		?workingDir :String,
 		?cpus :Int = 1,
 		?maxDuration :Int = 600,

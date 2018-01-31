@@ -291,15 +291,15 @@ class ServiceMonitorRequest
 
 		var outputName1 = 'out${ShortId.generate()}';
 
-		var inputInline :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputInline :DataBlob = {
+			source: DataSource.InputInline,
 			value: inputValueInline,
 			name: inputName1
 		}
 
 		var scriptName = 'script.sh';
-		var inputScript :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputScript :DataBlob = {
+			source: DataSource.InputInline,
 			value: '#!/bin/sh\ncat /$DIRECTORY_INPUTS/$inputName1 > /$DIRECTORY_OUTPUTS/$outputName1',
 			name: scriptName
 		}

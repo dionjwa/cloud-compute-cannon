@@ -1,4 +1,4 @@
-clients/shared/hxml/git-libs.hxml
+clients/shared/hxml/git-libs-server.hxml
 
 -lib promhx:1.1.0
 -lib redux:0.5.1
@@ -6,7 +6,7 @@ clients/shared/hxml/git-libs.hxml
 -lib hx-color-trace
 -lib version
 -lib abstracts-core:0.1.1
--lib yaml:1.2.1
+-lib yaml:1.3.0
 -lib minject:2.0.0-rc.1
 -lib logshim:0.0.4
 -lib msgpack-haxe:1.15.1

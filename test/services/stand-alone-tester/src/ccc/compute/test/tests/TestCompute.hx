@@ -45,14 +45,14 @@ class TestCompute extends ServerAPITestBase
 
 		var outputValue1 = 'out${ShortId.generate()}';
 
-		var inputInline :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputInline :DataBlob = {
+			source: DataSource.InputInline,
 			value: inputValue2,
 			name: inputName2
 		}
 
-		var inputUrl :ComputeInputSource = {
-			type: InputSource.InputUrl,
+		var inputUrl :DataBlob = {
+			source: DataSource.InputUrl,
 			value: 'http://${ServerTesterConfig.CCC}/mirrorfile/$inputValue3',
 			name: inputName3
 		}
@@ -76,8 +76,8 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 				var targetStdout = '$outputValueStdout\n$outputValueStdout\nfoo\n$outputValueStdout'.trim();
 				var targetStderr = '$outputValueStderr';
 				var scriptName = 'script.sh';
-				var inputScript :ComputeInputSource = {
-					type: InputSource.InputInline,
+				var inputScript :DataBlob = {
+					source: DataSource.InputInline,
 					value: script,
 					name: scriptName
 				}

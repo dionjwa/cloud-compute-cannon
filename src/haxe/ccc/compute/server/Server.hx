@@ -357,9 +357,10 @@ class Server
 		var app = injector.getValue(Application);
 
 		//Serve metapages dashboards
-		app.use('/', Express.Static('./web'));
+		app.use('/metaframe', Express.Static('./clients/metaframe'));
 		// app.use('/dashboard', Express.Static('./clients/dashboard'));
 		app.use('/node_modules', Express.Static('./node_modules'));
+		app.use('/', Express.Static('./web'));
 
 		var storage :ServiceStorage = injector.getValue(ServiceStorage);
 

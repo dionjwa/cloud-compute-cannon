@@ -662,7 +662,7 @@ class DockerDataTools
 							name = name.startsWith(path.substr(1)) ? name.substr(path.length) : name;
 							name = name.startsWith('./') ? name.substr(2) : name;
 							name = name.trim();
-							if (name.length > 0) {
+							if (name.length > 0 && buffer != null) {
 								files.push({
 									name: name,
 									value: buffer.toString('base64'),

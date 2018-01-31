@@ -502,24 +502,24 @@ class ServiceBatchComputeTools
 
 	/**
 	 * Write inputs to the StorageService.
-	 * @param  inputs     :Array<ComputeInputSource> [description]
+	 * @param  inputs     :Array<DataSource> [description]
 	 * @param  inputsPath :String                    Path prefix to the input file.
 	 * @return            A function that will cancel (delete) the written files if an error is triggered later.
 	 */
-	public static function writeInputFiles(fs :ServiceStorage, inputDescriptions :Array<ComputeInputSource>, inputsPath :String) :{cancel:Void->Promise<Bool>, inputs:Array<String>, promise:Promise<Dynamic>}
+	public static function writeInputFiles(fs :ServiceStorage, inputDescriptions :Array<DataBlob>, inputsPath :String) :{cancel:Void->Promise<Bool>, inputs:Array<String>, promise:Promise<Dynamic>}
 	{
 		var promises = [];
 		var inputNames = [];
 		if (inputDescriptions != null) {
 			for (input in inputDescriptions) {
 				var inputFilePath = Path.join(inputsPath, input.name);
-				var type :InputSource = input.type == null ? InputSource.InputInline : input.type;
-				var encoding :InputEncoding = input.encoding == null ? InputEncoding.utf8 : input.encoding;
+				var source :DataSource = input.source == null ? DataSource.InputInline : input.source;
+				var encoding :DataEncoding = input.encoding == null ? DataEncoding.utf8 : input.encoding;
 				switch(encoding) {
 					case utf8,base64,ascii,utf16le,ucs2,binary,hex:
 					default: throw 'Unsupported input encoding=$encoding';
 				}
-				switch(type) {
+				switch(source) {
 					case InputInline:
 						if (input.value != null) {
 							var buffer = new Buffer(Std.string(input.value), encoding);
@@ -548,7 +548,7 @@ class ServiceBatchComputeTools
 						}
 						inputNames.push(input.name);
 					default:
-						throw 'Unhandled input type="$type" from $inputDescriptions';
+						throw 'Unhandled input type="$source" from $inputDescriptions';
 				}
 			}
 		}

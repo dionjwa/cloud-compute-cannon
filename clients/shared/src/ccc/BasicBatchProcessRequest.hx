@@ -2,7 +2,7 @@ package ccc;
 
 //TODO: this should extend (or somehow use the Definitions.DockerBatchComputeJob)
 typedef BasicBatchProcessRequest = {
-	@:optional var inputs :Array<ComputeInputSource>;
+	@:optional var inputs :Array<DataBlob>;
 	@:optional var image :String;
 #if clientjs
 	@:optional var createOptions :Dynamic;

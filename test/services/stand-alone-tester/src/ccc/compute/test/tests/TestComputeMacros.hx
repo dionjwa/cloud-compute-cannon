@@ -29,14 +29,14 @@ class TestComputeMacros
 
 			var outputValue1 = 'out${ShortId.generate()}';
 
-			var inputInline :ComputeInputSource = {
-				type: InputSource.InputInline,
+			var inputInline :DataSource = {
+				type: DataSource.InputInline,
 				value: inputValueInline,
 				name: inputName2
 			}
 
-			var inputUrl :ComputeInputSource = {
-				type: InputSource.InputUrl,
+			var inputUrl :DataSource = {
+				type: DataSource.InputUrl,
 				value: 'https://www.google.com/textinputassistant/tia.png',
 				name: inputName3
 			}
@@ -62,8 +62,8 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 			var targetStdout = '$outputValueStdout\n$outputValueStdout\nfoo\n$outputValueStdout'.trim();
 			var targetStderr = '$outputValueStderr';
 			var scriptName = 'script.sh';
-			var inputScript :ComputeInputSource = {
-				type: InputSource.InputInline,
+			var inputScript :DataSource = {
+				type: DataSource.InputInline,
 				value: script,
 				name: scriptName
 			}

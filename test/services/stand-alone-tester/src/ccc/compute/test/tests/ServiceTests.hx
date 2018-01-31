@@ -240,8 +240,8 @@ class ServiceTests
 
 		var outputValue1 = 'out${ShortId.generate()}';
 
-		var inputInline :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputInline :DataSource = {
+			type: DataSource.InputInline,
 			value: inputValueInline,
 			name: inputName2
 		}
@@ -267,8 +267,8 @@ cat /$DIRECTORY_INPUTS/$inputName2 > /$DIRECTORY_OUTPUTS/$outputName2
 		var targetStdout = '$outputValueStdout\n$outputValueStdout\nfoo\n$outputValueStdout'.trim();
 		var targetStderr = '$outputValueStderr';
 		var scriptName = 'script.sh';
-		var inputScript :ComputeInputSource = {
-			type: InputSource.InputInline,
+		var inputScript :DataSource = {
+			type: DataSource.InputInline,
 			value: script,
 			name: scriptName
 		}

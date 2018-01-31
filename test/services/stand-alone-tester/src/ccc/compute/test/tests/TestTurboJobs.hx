@@ -217,7 +217,7 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 		var customOutputsPath = '$TEST_BASE/$TESTNAME/$random/$DIRECTORY_OUTPUTS';
 		var customResultsPath = '$TEST_BASE/$TESTNAME/$random/results';
 
-		var inputs :Array<ComputeInputSource> = [];
+		var inputs :Array<DataBlob> = [];
 
 		var inputName2 = 'in${ShortId.generate()}';
 		var inputName3 = 'in${ShortId.generate()}';
