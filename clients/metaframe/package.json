@@ -5,7 +5,6 @@
   "scripts": {
     "libs": "mkdir -p ../../build/clients/metaframe && browserify src/libs.js -o ../../build/clients/metaframe/libs.js -d",
     "serve": "livereloadx -s build",
-    "dev": "haxe build-dev.hxml",
     "work": "npm run libs && npm run serve",
     "build": "haxe build.hxml",
     "minify": "node minify-all.js",

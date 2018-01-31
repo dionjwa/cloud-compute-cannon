@@ -63,6 +63,7 @@ class ServerTester
 			addTestClass(ccc.compute.test.tests.TestJobs);
 			addTestClass(ccc.compute.test.tests.TestTurboJobs);
 			addTestClass(ccc.compute.test.tests.TestFailureConditions);
+			addTestClass(ccc.compute.test.tests.TestMetaframe);
 		}
 		//Travis struggles with the scaling tests, likely due to
 		//the slowness of the underlying VCPU. Tests that succeed
