@@ -43,7 +43,7 @@ fi
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/cloud-compute-cannon" ] && [ "v$NPM_VERSION" == "$TRAVIS_TAG" ];
 	then
-		echo "Publishing to dockerhub: dionjwa/cloud-compute-cannon${NPM_VERSION}"
+		echo "Publishing to dockerhub: dionjwa/cloud-compute-cannon:${NPM_VERSION}"
 		./bin/publish-docker
 	else
 		echo "No tag, not publishing image to dockerhub"
