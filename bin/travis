@@ -29,8 +29,6 @@ echo "TRAVIS_TAG=$TRAVIS_TAG"
 # Sanity check on versions
 ./bin/version-check
 
-bin/clean
-
 #First build locally the docker images for the minimal CCC server
 bin/build-docker-images
 

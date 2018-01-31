@@ -96,6 +96,8 @@ RUN npm install -g forever && touch $APP/.foreverignore
 
 COPY --from=builder-server-npm /app/node_modules /app/node_modules
 COPY --from=builder-haxe-all /app/build/server /app/server
+COPY --from=builder-haxe-all /app/build/test /app/test
+COPY --from=builder-haxe-all /app/build/local-scaling-server /app/local-scaling-server
 COPY --from=builder-haxe-all /app/build/web /app/web
 COPY --from=builder-metaframe-builder /app/build/clients/metaframe /app/clients/metaframe
 

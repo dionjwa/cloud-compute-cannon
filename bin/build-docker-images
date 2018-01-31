@@ -19,7 +19,7 @@ PACKAGE_VERSION=$(cat package.json \
 
 REPO_NAME="cloud-compute-cannon:$GIT_TAG"
 
-echo $GIT_TAG > VERSION
+# echo $GIT_TAG > ./VERSION
 docker build -t $REPO_NAME .
 
 #Also create a tag with the npm version

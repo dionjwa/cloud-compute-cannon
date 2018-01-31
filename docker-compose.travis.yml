@@ -33,7 +33,7 @@ services:
   ccc.tests:
     image: "cloud-compute-cannon:${VERSION}"
     working_dir: /app
-    command: ["node",  "build/test/cloud-compute-cannon-tester.js"]
+    command: ["node",  "test/cloud-compute-cannon-tester.js"]
     environment:
       - CCC=ccc.local
       - CCC_SCALING=ccc-scaling-server:4015
@@ -43,7 +43,7 @@ services:
       - TEST=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./build:/app/build
+      - ./build/test:/app/test
     links:
       - ccc.local
       - redis1
