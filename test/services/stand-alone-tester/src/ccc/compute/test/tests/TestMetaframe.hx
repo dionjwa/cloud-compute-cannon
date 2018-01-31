@@ -1,6 +1,5 @@
 package ccc.compute.test.tests;
 
-@only
 class TestMetaframe
 	extends haxe.unit.async.PromiseTest
 {
