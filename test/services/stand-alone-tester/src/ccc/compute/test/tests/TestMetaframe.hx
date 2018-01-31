@@ -3,14 +3,17 @@ package ccc.compute.test.tests;
 class TestMetaframe
 	extends haxe.unit.async.PromiseTest
 {
-	@only
+	/**
+	 * As long as it returns a 200 response (no error thrown)
+	 * we assume the metaframe is ok. This could be more
+	 * sophisticated but for now it's just a sanity check.
+	 */
 	@timeout(2000)
 	public function testMetapage() :Promise<Bool>
 	{
-		var url = 'http://${ServerTesterConfig.CCC}/metaframe';
+		var url = 'http://${ServerTesterConfig.CCC}/metaframe/';
 		return RequestPromises.get(url)
 			.then(function(result) {
-				trace('result=${result}');
 				return true;
 			});
 	}

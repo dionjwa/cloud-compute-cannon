@@ -20,10 +20,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./build/server:/app/server
-      # - ./clients/dashboard/build:/app/clients/dashboard
       - ./build/clients:/app/clients
       - ./src/web:/app/web
-      - ./ccc-local-storage:/app/ccc- local-storage
+      - ./ccc-local-storage:/app/ccc-local-storage
       - ./package.json:/app/package.json
       - ./node_modules_docker:/app/node_modules
     environment:
@@ -43,7 +42,7 @@ services:
   ccc.tests:
     image: dionjwa/haxe-watch:v0.7.3
     working_dir: /app
-    # command: ["nodemon", "-L", "--delay", "5", "--watch", "build/test", "--watch", "build/server", "build/test/cloud-compute-cannon-tester.js"]
+    # Switch these when developing locally
     # command: ["nodemon", "-L", "--watch", "build/test", "build/test/cloud-compute-cannon-tester.js"]
     command: ["node", "build/test/cloud-compute-cannon-tester.js"]
     environment:

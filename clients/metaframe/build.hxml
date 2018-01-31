@@ -1,8 +1,3 @@
--cmd mkdir -p build/clients/metaframe/
-
---next
-
-
 clients/shared/hxml/git-libs-client.hxml
 clients/shared/hxml/react.hxml
 -lib json-rpc:1.4.3
