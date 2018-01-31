@@ -1,3 +1,3 @@
 variable "version" {
-  default = "0.1.50-test-08"
+  default = "0.2.0"
 }
