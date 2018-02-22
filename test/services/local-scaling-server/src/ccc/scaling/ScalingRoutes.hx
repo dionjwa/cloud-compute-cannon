@@ -27,6 +27,7 @@ class ScalingRoutes
 		}
 
 		addTestClass(ScalingTests);
+		addTestClass(ScalingTestsGpusCpus);
 		var exitOnFinish = false;
 		var disableTrace = false;
 		return runner.run(exitOnFinish, disableTrace)

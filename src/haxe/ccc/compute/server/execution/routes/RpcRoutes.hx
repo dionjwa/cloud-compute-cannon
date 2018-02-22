@@ -21,7 +21,7 @@ class RpcRoutes
 		doc:'Get all bull queues'
 	})
 #if ((nodejs && !macro) && !excludeccc)
-	public function getQueues() :Promise<BullJobCounts>
+	public function getQueues() :Promise<{cpu:BullJobCounts,gpu:BullJobCounts}>
 	{
 		return QueueTools.getQueueSizes(_injector);
 #else
@@ -84,24 +84,24 @@ class RpcRoutes
 	public function status() :Promise<SystemStatus>
 	{
 #if ((nodejs && !macro) && !excludeccc)
-		return ServerCommands.status();
+		return ccc.compute.server.services.status.SystemStatusManager.getStatus(_injector);
 #else
 		return Promise.promise(null);
 #end
 	}
 
-	@rpc({
-		alias:'info',
-		doc:'Get the running status of this worker only'
-	})
-	public function info() :Promise<SystemStatus>
-	{
-#if ((nodejs && !macro) && !excludeccc)
-		return ServerCommands.status();
-#else
-		return Promise.promise(null);
-#end
-	}
+// 	@rpc({
+// 		alias:'info',
+// 		doc:'Get the running status of this worker only'
+// 	})
+// 	public function info() :Promise<SystemStatus>
+// 	{
+// #if ((nodejs && !macro) && !excludeccc)
+// 		return ServerCommands.status();
+// #else
+// 		return Promise.promise(null);
+// #end
+// 	}
 
 	@rpc({
 		alias:'serverversion',

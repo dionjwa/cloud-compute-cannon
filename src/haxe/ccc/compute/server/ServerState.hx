@@ -67,12 +67,6 @@ abstract ServerState(Injector) from Injector to Injector
 		return clients.client;
 	}
 
-	// inline public function getServiceConfiguration() :ServiceConfiguration
-	// {
-	// 	var config :ServiceConfiguration = this.getValue('ccc.compute.shared.ServiceConfiguration');
-	// 	return config;
-	// }
-
 	inline public function getRouter() :ccc.compute.server.execution.routes.RpcRoutes
 	{
 		var router = this.getValue(ccc.compute.server.execution.routes.RpcRoutes);

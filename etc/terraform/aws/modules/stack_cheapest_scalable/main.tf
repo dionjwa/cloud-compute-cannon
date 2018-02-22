@@ -69,7 +69,7 @@ module "asg" {
   key_name = "${aws_key_pair.deployer.key_name}"
   vpc_id = "${module.vpc.vpc_id}"
   subnets = ["${concat("${module.vpc.public_subnets}")}"]
-  instance_type = "t2.micro"
+  instance_type = "${var.worker_type}"
   region = "${var.region}"
   redis_host = "${module.redis.hostname}"
   fluent_host = "${module.elk.hostname}"
@@ -77,6 +77,8 @@ module "asg" {
   s3_secret_key = "${var.secret_key}"
   s3_region     = "${var.region}"
   s3_bucket     = "${module.s3.bucket_name}"
+  gpu           = "${var.gpu}"
+  server_version       = "${var.server_version}"
 }
 
 #Lambda scaling
@@ -85,7 +87,8 @@ module "lambda" {
   subnet_ids = ["${concat("${module.vpc.public_subnets}", "${module.vpc.private_subnets}")}"]
   security_group_ids = ["${module.redis.security_group_id}"]
   redis_host = "${module.redis.hostname}"
-  asg_name = "${module.asg.name}"
+  asg_name = "${var.gpu != "1" ? module.asg.name : ""}"
+  asg_gpu_name = "${var.gpu == "1" ? module.asg.name : ""}"
 }
 
 #ELK stack (logging)

@@ -8,7 +8,7 @@ volumes:
 
 services:
 
-  serverworker:
+  server:
     image: quay.io/bionano/cloud-compute-cannon:dd574008
     cpu_shares: 1024
     ports:
@@ -31,5 +31,3 @@ services:
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
-    logging:
-      driver: none

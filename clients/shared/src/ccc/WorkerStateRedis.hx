@@ -19,13 +19,41 @@ class WorkerStateRedis
 	static var REDIS_MACHINE_DOCKER_INFO = '${PREFIX}hash${SEP}dockerinfo';//<MachineId, DockerInfo>
 	static var REDIS_MACHINE_STARTS = '${PREFIX}hash${SEP}starts';//<MachineId, DockerInfo>
 	public static var REDIS_MACHINES_ACTIVE = '${PREFIX}set${SEP}active';
+	public static var REDIS_MACHINES_GPU = '${PREFIX}set${SEP}gpu';//<MachineId>
 	static var REDIS_MACHINE_LAST_HEALTH_STATUS = '${PREFIX}hash${SEP}status_health';//<MachineId, WorkerHealthStatus>
 	static var REDIS_MACHINE_LAST_STATUS_TIME = '${PREFIX}hash${SEP}status_time';//<MachineId, Float>
-	static var REDIS_MACHINE_DISK = '${PREFIX}hash${SEP}disk';//<MachineId, Float>
+	public static var REDIS_MACHINE_DISK = '${PREFIX}hash${SEP}disk';//<MachineId, Float>
 	static var REDIS_MACHINE_EVENT_LIST = '${PREFIX}hash${SEP}events';//<MachineId, JSON>
 	public static var REDIS_MACHINE_CHANNEL_PREFIX = '${PREFIX}channel${SEP}';
 	public static var REDIS_MACHINE_UPDATED_CHANNEL = '${PREFIX}channel';
 
+	/**
+	 * Expects:
+	 * 	machineId
+	 */
+	public static var REDIS_SNIPPET_GET_SYSTEM_WORKERSTATE = '
+
+	local workerState
+	if redis.call("HEXISTS", "${REDIS_MACHINE_DOCKER_INFO}", machineId) == 0 then
+		workerState = nil
+	else
+		local starts = cmsgpack.unpack(redis.call("HGET", "${REDIS_MACHINE_STARTS}", machineId))
+		local dockerInfo = cmsgpack.unpack(redis.call("HGET", "${REDIS_MACHINE_DOCKER_INFO}", machineId))
+		local status = redis.call("HGET", "${REDIS_MACHINE_LAST_STATUS}", machineId)
+		local statusHealth = redis.call("HGET", "${REDIS_MACHINE_LAST_HEALTH_STATUS}", machineId)
+		local statusTime = redis.call("HGET", "${REDIS_MACHINE_LAST_STATUS_TIME}", machineId)
+		if statusTime then
+			statusTime = tonumber(statusTime)
+		end
+		local gpu = 0
+		if redis.call("SISMEMBER", "${REDIS_MACHINES_GPU}", machineId) == 1 then
+			gpu = 1
+		end
+		local events = cmsgpack.unpack(redis.call("HGET", "${REDIS_MACHINE_EVENT_LIST}", machineId))
+		local diskUsage = tonumber(redis.call("HGET", "${REDIS_MACHINE_DISK}", machineId))
+		workerState = {id=machineId, starts=starts, cpus=dockerInfo.NCPU, status=status, gpus=gpu, disk=diskUsage}
+	end
+	';
 
 	static var REDIS_SNIPPET_GET_WORKERSTATE = '
 
@@ -41,8 +69,12 @@ class WorkerStateRedis
 		if statusTime then
 			statusTime = tonumber(statusTime)
 		end
+		local gpu = false
+		if redis.call("SISMEMBER", "${REDIS_MACHINES_GPU}", machineId) then
+			gpu = true
+		end
 		local events = cmsgpack.unpack(redis.call("HGET", "${REDIS_MACHINE_EVENT_LIST}", machineId))
-		workerState = {id=machineId, starts=starts, DockerInfo=dockerInfo, status=status, statusHealth=statusHealth, statusTime=statusTime, events=events}
+		workerState = {id=machineId, starts=starts, DockerInfo=dockerInfo, status=status, statusHealth=statusHealth, statusTime=statusTime, events=events, gpu=gpu}
 	end
 	';
 
@@ -56,13 +88,20 @@ class WorkerStateRedis
 	static var SCRIPT_INITIALIZE_WORKER = '
 	local machineId = ARGV[1]
 	local dockerInfo = cjson.decode(ARGV[2])
-	local timeString = ARGV[3]
+	local gpu = ARGV[3]
+	redis.log(redis.LOG_WARNING, "Init worker gpu= " .. tostring(gpu))
+	local timeString = ARGV[4]
 	local time = tonumber(timeString)
 	local exists = redis.call("HEXISTS", "${REDIS_MACHINE_DOCKER_INFO}", machineId)
 	if exists == 0 or exists == "0" then
 		redis.call("HSET", "${REDIS_MACHINE_DOCKER_INFO}", machineId, cmsgpack.pack(dockerInfo))
 		redis.call("HSET", "${REDIS_MACHINE_STARTS}", machineId, cmsgpack.pack({}))
 		redis.call("HSET", "${REDIS_MACHINE_EVENT_LIST}", machineId, cmsgpack.pack({}))
+		if gpu == "1" then
+			redis.call("SADD", "${REDIS_MACHINES_GPU}", machineId)
+		else
+			redis.call("SREM", "${REDIS_MACHINES_GPU}", machineId)
+		end
 		--Assume that the first init the machine is healthy
 		redis.call("HSET", "${REDIS_MACHINE_LAST_STATUS}", machineId, "${WorkerStatus.OK}")
 
@@ -92,10 +131,10 @@ class WorkerStateRedis
 	${RedisLoggerTools.SNIPPET_REDIS_LOG}
 	';
 	@redis({lua:'${SCRIPT_INITIALIZE_WORKER}'})
-	public static function initializeWorkerInternal(id :MachineId, dockerInfoString :String, now :Float) :Promise<Bool> {}
-	public static function initializeWorker(id :MachineId, dockerInfo :DockerInfo) :Promise<Bool>
+	public static function initializeWorkerInternal(id :MachineId, dockerInfoString :String, gpu :String, now :Float) :Promise<Bool> {}
+	public static function initializeWorker(id :MachineId, dockerInfo :DockerInfo, gpu :String) :Promise<Bool>
 	{
-		return initializeWorkerInternal(id, Json.stringify(dockerInfo), time());
+		return initializeWorkerInternal(id, Json.stringify(dockerInfo), gpu, time());
 	}
 
 	@redis({
@@ -140,7 +179,7 @@ class WorkerStateRedis
 	'
 	local machineId = ARGV[1]
 	local statusHealth = ARGV[2]
-	local timeString = tonumber(ARGV[3])
+	local timeString = ARGV[3]
 	local time = tonumber(timeString)
 
 	if redis.call("HGET", "${REDIS_MACHINE_LAST_STATUS}", machineId) == "${WorkerStatus.REMOVED}" then
@@ -314,44 +353,6 @@ class WorkerStateRedis
 		lua:'${SNIPPET_SEND_COMMAND_TO_ALL_WORKERS}'
 	})
 	public static function sendCommandToAllWorkers(command :WorkerUpdateCommand) :Promise<String> {}
-
-	//Expects local isPaused
-	static var SNIPPET_UPDATE_ACTIVE_WORKER_IDS =
-	'
-	local idsString = ARGV[1]
-	local ids = cjson.decode(idsString)
-	redis.call("DEL", "${REDIS_MACHINES_ACTIVE}")
-	for i,machineId in ipairs(idsString) do
-		redis.call("SADD", "${REDIS_MACHINES_ACTIVE}", machineId)
-	end
-	';
-	@redis({
-		lua:'${SNIPPET_UPDATE_ACTIVE_WORKER_IDS}'
-	})
-	/* ids is a json array string  */
-	public static function updateActiveWorkerIds(ids :String) :Promise<String>
-	{
-		
-	}
-
-	//#TODO: test this
-	@redis({
-		lua:'
-			local activeWorkerIds = redis.call("SMEMBERS", "${REDIS_MACHINES_ACTIVE}")
-			for i,machineId in ipairs(activeWorkerIds) do
-				local dockerinfoString = redis.call("HGET", "${REDIS_MACHINE_DOCKER_INFO}", machineId)
-				if dockerinfoString then
-					local dockerInfo = cmsgpack.unpack(dockerinfoString)
-					local cpus = dockerInfo.NCPU
-					local jobCount = redis.call("SCARD", "${JobStatsTools.REDIS_KEY_SET_PREFIX_WORKER_JOBS_ACTIVE}" .. machineId)
-					if jobCount < cpus then
-						return machineId
-					end
-				end
-			end
-		'
-	})
-	public static function getFirstFreeWorker() :Promise<MachineId> {}
 
 	inline static function time() :Float
 	{

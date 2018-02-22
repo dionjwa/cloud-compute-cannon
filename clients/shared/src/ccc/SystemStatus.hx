@@ -1,9 +1,38 @@
 package ccc;
 
-typedef SystemStatus = {
-	var pendingTop5 :Array<JobId>;
-	var pendingCount :Int;
-	var workers :Array<{id :MachineId, jobs:Array<{id:JobId,enqueued:String,started:String,duration:String}>,cpus:String}>;
-	var finishedTop5 :TypedDynamicObject<JobFinishedStatus,Array<JobId>>;
-	var finishedCount :Int;
+import util.TypedDynamicAccess;
+
+#if nodejs
+	import js.npm.bull.Bull;
+#end
+
+typedef SystemJobStatus = {
+	var id :JobId;
+	var enqueued :String;
+	var started :String;
+	var duration :String;
+	var definition :BasicBatchProcessRequest;
 }
+
+typedef SystemWorkerStatus = {
+	var id :MachineId;
+	var jobs :Array<SystemJobStatus>;
+	var cpus :Int;
+	var gpus :Int;
+	var disk :Float;
+	var status :WorkerStatus;
+	var starts :Array<Dynamic>;
+	var finished :Int;
+}
+
+typedef SystemStatus = {
+#if nodejs
+	var queues :TypedDynamicAccess<BullQueueNames,BullJobCounts>;
+#else
+	var queues :DynamicAccess<Dynamic>;
+#end
+	var servers :Int;
+	var workers :Array<SystemWorkerStatus>;
+	var jobs :Array<JobId>;
+}
+

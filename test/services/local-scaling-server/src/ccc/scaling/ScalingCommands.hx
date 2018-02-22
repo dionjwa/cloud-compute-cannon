@@ -12,6 +12,7 @@ class ScalingCommands
 
 	static var DOCKER_LABEL_CCC_TYPE = 'ccc.type';
 	static var DOCKER_LABEL_CCC_TYPE_TYPE_WORKER = 'worker';
+	static var DOCKER_LABEL_CCC_TYPE_TYPE_SERVER = 'server';
 	static var DOCKER_LABEL_CCC_TEST_WORKER = 'ccc.test.worker';
 
 	static var docker :Docker;
@@ -304,7 +305,7 @@ class ScalingCommands
 								var workersToRemove = workerIds.length - DesiredCapacity;
 								Log.debug({event:'Equalize', workersToRemove:'workersToRemove'});
 								if (workersToRemove > 0) {
-									return lambdaScaling.removeIdleWorkers(workersToRemove)
+									return lambdaScaling.removeIdleWorkers(AsgType.CPU, workersToRemove)
 										.then(function(workerIdsRemoved) {
 											Log.info({event:'Equalize', workerIdsRemoved:'workerIdsRemoved'});
 											return 'Workers removed: ${workerIdsRemoved}';
@@ -333,6 +334,8 @@ class ScalingCommands
 	public static function killAllWorkersAndJobs(docker :Docker) :Promise<Bool>
 	{
 		Log.debug({event:'KillAllWorkersAndJobs'});
+		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		return Promise.promise(true)
 			.pipe(function(_) {
 				return JobStateTools.cancelAllJobs();
@@ -366,7 +369,55 @@ class ScalingCommands
 					DesiredCapacity: 0
 				});
 			})
-			.thenWait(3000)
+			//Wait until it's all true
+			.pipe(function(_) {
+				function checkJobs() {
+					//Check the queue
+					return proxy.getQueues()
+						.then(function(queues) {
+							if (queues.cpu.waiting != 0) {
+								throw 'queues.cpu.waiting(${queues.cpu.waiting}) != 0';
+							}
+							if (queues.cpu.active != 0) {
+								throw 'queues.cpu.active(${queues.cpu.active}) != 0';
+							}
+							if (queues.cpu.delayed != 0) {
+								throw 'queues.cpu.delayed(${queues.cpu.delayed}) != 0';
+							}
+							if (queues.gpu.waiting != 0) {
+								throw 'queues.gpu.waiting(${queues.gpu.waiting}) != 0';
+							}
+							if (queues.gpu.active != 0) {
+								throw 'queues.gpu.active(${queues.gpu.active}) != 0';
+							}
+							if (queues.gpu.delayed != 0) {
+								throw 'queues.gpu.delayed(${queues.gpu.delayed}) != 0';
+							}
+							return true;
+						});
+				}
+				return RetryPromise.retryRegular(checkJobs, 10, 1000)
+					.pipe(function(_) {
+						function checkWorkers() {
+							return ScalingCommands.getAllDockerWorkerIds()
+								.then(function(workers) {
+									traceYellow('workers=$workers');
+									if (workers.length != 0) {
+										throw 'workers.length(${workers.length}) != 0';
+									}
+									return true;
+								});
+						}
+						return RetryPromise.retryRegular(checkWorkers, 10, 1000);
+					});
+			})
+			.pipe(function(_) {
+				return proxy.status()
+					.then(function(status) {
+						traceYellow(Json.stringify(status, null, '  '));
+						return true;
+					});
+			})
 			.thenTrue();
 	}
 }

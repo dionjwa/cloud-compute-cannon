@@ -11,9 +11,10 @@ package ccc;
 typedef JobParams = {
 	var maxDuration :Int;//Seconds
 	@:optional var cpus :Int; //Default: 1
+	@:optional var gpu :Bool;
 
 	/* Job definitions are automatically cached, but
-	   parameters (this object) are not part of cachen bundle */
+	   parameters (this object) are not part of cache bundle */
 	@:optional var DisableCache :Bool;
 	/* We can save time if outputs are ignored */
 	@:optional var IgnoreOutputs :Bool;

@@ -17,9 +17,9 @@ import util.DateFormatTools;
 class ServerCommands
 {
 	/** For debugging */
-	public static function traceStatus() :Promise<Bool>
+	public static function traceStatus(injector :Injector) :Promise<Bool>
 	{
-		return status()
+		return ccc.compute.server.services.status.SystemStatusManager.getStatus(injector)
 			.then(function(statusBlob) {
 				traceMagenta(Json.stringify(statusBlob, null, "  "));
 				return true;
@@ -62,100 +62,10 @@ class ServerCommands
 	// 		});
 	// }
 
-	public static function status() :Promise<SystemStatus>
-	{
-		return Promise.promise(null);
-		// var workerJson :InstancePoolJson = null;
-		// var jobsJson :QueueJson = null;
-		// var workerJsonRaw :Dynamic = null;
-		// return Promise.promise(true)
-		// 	.pipe(function(_) {
-		// 		return Promise.whenAll(
-		// 			[
-		// 				InstancePool.toJson(redis)
-		// 					.then(function(out) {
-		// 						workerJson = out;
-		// 						return true;
-		// 					}),
-		// 				ComputeQueue.toJson(redis)
-		// 					.then(function(out) {
-		// 						jobsJson = out;
-		// 						return true;
-		// 					}),
-		// 				InstancePool.toRawJson(redis)
-		// 					.then(function(out) {
-		// 						workerJsonRaw = out;
-		// 						return true;
-		// 					})
-		// 			]);
-		// 	})
-		// 	.then(function(_) {
-		// 		var now = Date.now();
-		// 		var result = {
-		// 			now: DateFormatTools.getFormattedDate(now.getTime()),
-		// 			pendingCount: jobsJson.pending.length,
-		// 			pendingTop5: jobsJson.pending.slice(0, 5),
-		// 			workers: workerJson.getMachines().map(function(m :JsonDumpInstance) {
-		// 				var timeout :String = null;
-		// 				if (workerJson.timeouts.exists(m.id)) {
-		// 					var timeoutDate = Date.fromTime(workerJson.getTimeout(m.id));
-		// 					timeout = DateFormatTools.getShortStringOfDateDiff(timeoutDate, now);
-		// 				}
-		// 				return {
-		// 					id :m.id,
-		// 					jobs: m.jobs != null ? m.jobs.map(function(computeJobId) {
-		// 						var jobId = jobsJson.getJobId(computeJobId);
-		// 						var stats = jobsJson.getStats(jobId);
-		// 						var enqueued = Date.fromTime(stats.enqueueTime);
-		// 						var dequeued = Date.fromTime(stats.lastDequeueTime);
-		// 						return {
-		// 							id: jobId,
-		// 							enqueued: enqueued.toString(),
-		// 							started: dequeued.toString(),
-		// 							duration: DateFormatTools.getShortStringOfDateDiff(dequeued, now)
-		// 						}
-		// 					}) : [],
-		// 					cpus: '${workerJson.getAvailableCpus(m.id)}/${workerJson.getTotalCpus(m.id)}',
-		// 					timeout: timeout
-		// 				};
-		// 			}),
-		// 			finishedCount: jobsJson.getFinishedJobs().length,
-		// 			finishedTop5: jobsJson.getFinishedAndStatus(5),
-		// 			// workerJson: workerJson,
-		// 			// workerJsonRaw: workerJsonRaw
-		// 		};
-		// 		return result;
-		// 	})
-		// 	.pipe(function(result) {
-		// 		var promises = workerJson.getMachines().map(
-		// 			function(m) {
-		// 				return InstancePool.getWorker(redis, m.id)
-		// 					.pipe(function(workerDef) {
-		// 						if (workerDef.ssh != null) {
-		// 							return cloud.MachineMonitor.getDiskUsage(workerDef.ssh)
-		// 								.then(function(usage) {
-		// 									result.workers.iter(function(blob) {
-		// 										if (blob.id == m.id) {
-		// 											Reflect.setField(blob, 'disk', usage);
-		// 										}
-		// 									});
-		// 									return true;
-		// 								})
-		// 								.errorPipe(function(err) {
-		// 									Log.error({error:err, message:'Failed to get disk space for worker=${m.id}'});
-		// 									return Promise.promise(false);
-		// 								});
-		// 						} else {
-		// 							return Promise.promise(true);
-		// 						}
-		// 					});
-		// 			});
-		// 		return Promise.whenAll(promises)
-		// 			.then(function(_) {
-		// 				return result;
-		// 			});
-		// 	});
-	}
+	// public static function status() :Promise<SystemStatus>
+	// {
+	// 	return ccc.compute.server.services.status.SystemStatusManager.getStatus(_injector);
+	// }
 
 	public static function version() :ServerVersionBlob
 	{

@@ -6,9 +6,11 @@ volumes:
 
 services:
 
-  serverworker:
+  server:
     image: dionjwa/haxe-watch:v0.7.3
     cpu_shares: 1024
+    # ports:
+    #   - "9000:9000"
     expose:
       - 9000
     # Extra args for debugging: --inspect, --debug-brk
@@ -31,11 +33,12 @@ services:
       - REDIS_HOST=redis
       - VIRTUAL_HOST=ccc.local
       - FLUENT_HOST=fluentd
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - WORKER_STATUS_CHECK_INTERVAL_SECONDS=20
       - DISABLE_REQUEST_LOGS=true
+      - DISABLE_WORKER=false
     labels:
-      ccc.type: "worker"
+      ccc.type: "server"
       ccc.origin: "docker-compose"
 
   # Run the functional and scaling tests in a separate container
@@ -43,8 +46,8 @@ services:
     image: dionjwa/haxe-watch:v0.7.3
     working_dir: /app
     # Switch these when developing locally
-    # command: ["nodemon", "-L", "--watch", "build/test", "build/test/cloud-compute-cannon-tester.js"]
-    command: ["node", "build/test/cloud-compute-cannon-tester.js"]
+    command: ["nodemon", "-L", "--watch", "build/test", "build/test/cloud-compute-cannon-tester.js"]
+    # command: ["node", "build/test/cloud-compute-cannon-tester.js"]
     environment:
       - CCC=ccc.local
       - CCC_SCALING=ccc-scaling-server:4015
@@ -70,8 +73,8 @@ services:
       - "6379"
     volumes:
       - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
-    logging:
-      driver: none
+    # logging:
+    #   driver: none
 
   #Examine redis db
   redis-commander:
@@ -103,7 +106,7 @@ services:
   ccc-scaling-server:
     cpu_shares: 512
     image: dionjwa/haxe-watch:v0.7.3
-    command: ["nodemon", "-L", "local-scaling-server/cloud-compute-cannon-scaling-server.js"]
+    command: ["nodemon", "local-scaling-server/cloud-compute-cannon-scaling-server.js"]
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -120,7 +123,7 @@ services:
       - redis
       - ccc.local
     depends_on:
-      - serverworker
+      - server
 
   # The internal scaling service (mocks e.g. an AWS autoscaling group)
   # creates and destroys workers dynamically. This container detects
@@ -137,7 +140,7 @@ services:
       - ./etc/nginx/ccc.local.conf:/etc/nginx/vhost.d/ccc.local
       - ./etc/nginx/proxy.conf:/etc/nginx/proxy.conf
     depends_on:
-      - serverworker
+      - server
     logging:
       driver: none
 
@@ -180,6 +183,6 @@ services:
   #   volumes:
   #     - ./clients/dashboard:/app/
   #   links:
-  #     - serverworker:server
+  #     - server:server
   #   logging:
   #     driver: none

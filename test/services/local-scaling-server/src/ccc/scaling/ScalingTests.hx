@@ -1,9 +1,10 @@
 package ccc.scaling;
 
-import js.npm.bull.Bull;
-
-import haxe.unit.async.PromiseTest;
-import haxe.unit.async.PromiseTestRunner;
+typedef TestJobArgs = {
+	var count :Int;
+	var duration :Int;
+	var name :String;
+}
 
 class ScalingTests
 	extends PromiseTest
@@ -93,9 +94,8 @@ class ScalingTests
 			.pipe(lambda.traceJson())
 			.pipe(function(_) {
 				Log.debug({event:'Scale down, should terminate worker'});
-				return lambda.scaleDown()
+				return lambda.scaleDown(AsgType.CPU)
 					.thenWait(1000)
-					.pipe(lambda.traceJson())
 					.pipe(function(_) {
 						return WorkerStateRedis.get(workerId)
 							.then(function(blob) {
@@ -127,6 +127,8 @@ class ScalingTests
 	@timeout(10000)
 	public function testCreateWorker() :Promise<Bool>
 	{
+		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		return Promise.promise(true)
 			.pipe(function(_) {
 				return killAllWorkers();
@@ -134,12 +136,15 @@ class ScalingTests
 			.pipe(function(_) {
 				return ScalingCommands.createWorker();
 			})
+			//Wait until a worker is ready
 			.pipe(function(_) {
-				return ScalingCommands.getTestWorkers()
-					.then(function(workers) {
-						assertEquals(workers.length, 1);
-						return true;
-					});
+				return RetryPromise.retryRegular(function() {
+					return proxy.status()
+						.then(function(status) {
+							assertTrue(status.workers.length > 0);
+							return true;
+						});
+				}, 20, 1000);
 			})
 			.pipe(function(_) {
 				return killAllWorkers()
@@ -202,7 +207,6 @@ class ScalingTests
 			.pipe(function(_) {
 				return killAllWorkers();
 			})
-			//Start with a single worker
 			.pipe(function(_) {
 				// traceCyan('Ensure a single worker');
 				return ScalingCommands.setState({
@@ -231,7 +235,7 @@ class ScalingTests
 			.thenWait(500)
 			.pipe(function(_) {
 				// traceCyan('Scale down');
-				return lambda.scaleDown()
+				return lambda.scaleDown(AsgType.CPU)
 					.then(function(result) {
 						trace(result);
 						return true;
@@ -251,7 +255,7 @@ class ScalingTests
 			.thenWait(3000)
 			.pipe(function(_) {
 				// traceCyan('Scale down again, should be idempotent');
-				return lambda.scaleDown().thenTrue()
+				return lambda.scaleDown(AsgType.CPU).thenTrue()
 					.thenWait(1000)
 					.pipe(function(_) {
 						return ScalingCommands.getAllDockerWorkerIds()
@@ -266,8 +270,11 @@ class ScalingTests
 	}
 
 	@timeout(120000)
+	@only
 	public function testScaleUpLambda() :Promise<Bool>
 	{
+		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		var maxWorkers = 4;
 		return Promise.promise(true)
 			.pipe(function(_) {
@@ -282,8 +289,18 @@ class ScalingTests
 				})
 				.thenWait(4000)
 				.pipe(function(_) {
+					//Check the queue
+					traceYellow('After setting max=$maxWorkers');
+					return proxy.status()
+						.then(function(status) {
+							traceYellow(Json.stringify(status, null, '  '));
+							return true;
+						});
+				})
+				.pipe(function(_) {
 					return ScalingCommands.getAllDockerWorkerIds()
 						.then(function(workers) {
+							traceYellow('workers=$workers');
 							// traceCyan('Ensure a single worker: good, we have a single worker workers=$workers');
 							assertEquals(workers.length, 1);
 							return true;
@@ -311,16 +328,52 @@ class ScalingTests
 			.pipe(function(_) {
 				var numJobs = 20;
 				// traceCyan('Create ${numJobs} test jobs');
-				return createTestJobs(numJobs, 30, 'TimedJob')
+				return createTestJobs({count:numJobs, duration:30, name:'TimedJob'})
 					.thenTrue();
 			})
 			.thenWait(3000)
+				.pipe(function(_) {
+					//Check the queue
+					traceYellow('After creating many test jobs');
+					return proxy.status()
+						.then(function(status) {
+							traceYellow(Json.stringify(status, null, '  '));
+							return true;
+						});
+				})
 			.pipe(function(_) {
-				// traceCyan('Scale up, this should trigger the creation of a single worker');
-				return lambda.scaleUp()
+				traceCyan('Scale up, this should trigger the creation of a single worker');
+				return lambda.scaleUp(AsgType.CPU)
 					.thenTrue();
 			})
+
+			//Wait until a worker is ready
+			.pipe(function(_) {
+				return RetryPromise.retryRegular(function() {
+					return proxy.status()
+						.then(function(status) {
+							assertTrue(status.workers.length == 2);
+							return true;
+						});
+				}, 20, 1000);
+			})
+
+
+			.pipe(function(_) {
+				// traceCyan('Make all workers do a health check');
+				return WorkerStateRedis.sendCommandToAllWorkers(WorkerUpdateCommand.HealthCheck);
+			})
+
 			.thenWait(3000)
+				.pipe(function(_) {
+					//Check the queue
+					traceYellow('Scaled up');
+					return proxy.status()
+						.then(function(status) {
+							traceYellow(Json.stringify(status, null, '  '));
+							return true;
+						});
+				})
 			.pipe(function(_) {
 				// traceCyan('Make all workers do a health check');
 				return WorkerStateRedis.sendCommandToAllWorkers(WorkerUpdateCommand.HealthCheck);
@@ -335,16 +388,39 @@ class ScalingTests
 						return true;
 					});
 			})
+
+				.pipe(function(_) {
+					//Check the queue
+					traceYellow('Scaled up');
+					return proxy.status()
+						.then(function(status) {
+							traceYellow(Json.stringify(status, null, '  '));
+							return true;
+						});
+				})
+
 			.pipe(function(_) {
 				//Now add a ton of jobs, and run the scale up a bunch of times,
 				//we should not go over the max
 				var numJobs = 60;
 				// traceCyan('Create ${numJobs} test jobs');
-				return createTestJobs(numJobs, 20, 'TimedJob')
+				return createTestJobs({count:numJobs, duration:200000, name:'TimedJob'})
 					.pipe(function(_) {
-						return lambda.scaleUp().thenTrue();
+						return lambda.scaleUp(AsgType.CPU).thenTrue();
 					})
 					.thenWait(2000)
+
+
+						.pipe(function(_) {
+							//Check the queue
+							traceYellow('After added a ton of long jobs');
+							return proxy.status()
+								.then(function(status) {
+									traceYellow(Json.stringify(status, null, '  '));
+									return true;
+								});
+						})
+
 					.pipe(function(_) {
 						// traceCyan('Now check the number of workers, should be $maxWorkers');
 						return ScalingCommands.getAllDockerWorkerIds()
@@ -356,9 +432,18 @@ class ScalingTests
 					})
 					//Scale third time, should be up to the max now
 					.pipe(function(_) {
-						return lambda.scaleUp().thenTrue();
+						return lambda.scaleUp(AsgType.CPU).thenTrue();
 					})
 					.thenWait(2000)
+						.pipe(function(_) {
+						//Check the queue
+						traceYellow('Scaled up after  a bunch of times');
+						return proxy.status()
+							.then(function(status) {
+								traceYellow(Json.stringify(status, null, '  '));
+								return true;
+							});
+						})
 					.pipe(function(_) {
 						// traceCyan('Now check the number of workers, should be $maxWorkers');
 						return ScalingCommands.getAllDockerWorkerIds()
@@ -370,7 +455,7 @@ class ScalingTests
 					})
 					//Scale up again, but it should hit the max
 					.pipe(function(_) {
-						return lambda.scaleUp().thenTrue();
+						return lambda.scaleUp(AsgType.CPU).thenTrue();
 					})
 					.thenWait(2000)
 					.pipe(function(_) {
@@ -382,11 +467,34 @@ class ScalingTests
 								return true;
 							});
 					})
+
+						.pipe(function(_) {
+							//Check the queue
+							traceYellow('About to scale down, situation report');
+							return proxy.status()
+								.then(function(status) {
+									traceYellow(Json.stringify(status, null, '  '));
+									return true;
+								});
+						})
+
+
 					//Scale down, should do nothing
 					.pipe(function(_) {
-						return lambda.scaleDown().thenTrue();
+						return lambda.scaleDown(AsgType.CPU).thenTrue();
 					})
 					.thenWait(2000)
+
+						.pipe(function(_) {
+							//Check the queue
+							traceYellow('After scaled down with jobs, it should not do anything');
+							return proxy.status()
+								.then(function(status) {
+									traceYellow(Json.stringify(status, null, '  '));
+									return true;
+								});
+						})
+
 					.pipe(function(_) {
 						return ScalingCommands.getAllDockerWorkerIds()
 							.then(function(workers) {
@@ -410,20 +518,15 @@ class ScalingTests
 			.pipe(function(_) {
 				return killAllWorkers();
 			})
-			//Create a server that doesn't do jobs
 			.pipe(function(_) {
-				return ScalingCommands.createWorker({disableWorker:true, disableServer:false});
-			})
-			//Submit a job, it should be waiting
-			.pipe(function(_) {
-				return createTestJobs(1, 0, 'testServersOnlyWorkersOnly');
+				return createTestJobs({count:1, duration:0, name:'testServersOnlyWorkersOnly'});
 			})
 			.thenWait(1000)
 			.pipe(function(_) {
 				//Check the queue
 				return proxy.getQueues()
-					.then(function(queues :BullJobCounts) {
-						assertEquals(queues.waiting, 1);
+					.then(function(queues) {
+						assertEquals(queues.cpu.waiting, 1);
 						return true;
 					});
 			})
@@ -431,21 +534,33 @@ class ScalingTests
 			.pipe(function(_) {
 				return ScalingCommands.createWorker({disableWorker:false, disableServer:true});
 			})
-			//Leave enough time for the worker to start and consume the job
-			.thenWait(4000)
+			//Wait until a worker is ready
+			.pipe(function(_) {
+				return RetryPromise.retryRegular(function() {
+					return proxy.status()
+						.then(function(status) {
+							assertTrue(status.workers.length > 0);
+							return true;
+						});
+				}, 20, 1000);
+			})
 			.pipe(function(_) {
 				//Check the queue
 				return proxy.getQueues()
-					.then(function(queues :BullJobCounts) {
-						assertEquals(queues.waiting, 0);
+					.then(function(queues) {
+						assertEquals(queues.cpu.waiting, 0);
 						return true;
 					});
 			})
 			.thenTrue();
 	}
 
-	public static function createTestJobs(count :Int, duration :Int, name :String) :Promise<Bool>
+	public static function createTestJobs(args: TestJobArgs) :Promise<Bool>
 	{
+		var count = args.count;
+		var duration = args.duration;
+		var name = args.name;
+
 		function createAndSubmitJob() {
 			var jobRequest = ServerTestTools.createTestJobAndExpectedResults(name, duration);
 			jobRequest.request.wait = false;
@@ -491,7 +606,10 @@ class ScalingTests
 
 	function killAllWorkers()
 	{
-		return ScalingCommands.killAllWorkersAndJobs(docker);
+		return ScalingCommands.killAllWorkersAndJobs(docker)
+			.pipe(function(_) {
+				return lambda.checks();
+			});
 	}
 
 	public function new(){}

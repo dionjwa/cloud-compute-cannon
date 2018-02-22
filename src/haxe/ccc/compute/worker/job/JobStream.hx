@@ -10,7 +10,7 @@ class JobStream
 				JobStatsTools.REDIS_CHANNEL_STATUS,
 				function(jobId :JobId) {
 					// traceYellow('Channel "${JobStatsTools.REDIS_CHANNEL_STATUS}" value=${jobId}');
-					return JobStatsTools.get(jobId)
+					return JobStatsTools.getJobStatsData(jobId)
 						.then(function(r) {
 							// traceYellow('Channel "${JobStatsTools.REDIS_CHANNEL_STATUS}" value=${jobId} result=${Json.stringify(r)}');
 							return r;

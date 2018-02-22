@@ -11,6 +11,9 @@ import ccc.compute.test.tests.*;
 import haxe.Json;
 import haxe.DynamicAccess;
 
+import haxe.unit.async.PromiseTest;
+import haxe.unit.async.PromiseTestRunner;
+
 import js.Node;
 import js.node.Process;
 import js.node.http.*;
@@ -20,6 +23,7 @@ import js.npm.docker.Docker;
 import js.npm.express.Express;
 import js.npm.express.Application;
 import js.npm.redis.RedisClient;
+import js.npm.bull.Bull;
 
 import minject.Injector;
 

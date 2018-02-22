@@ -94,6 +94,7 @@ cat /$DIRECTORY_INPUTS/$inputName1 > /$DIRECTORY_OUTPUTS/$outputName2
 		var inputsArray = [inputInline, inputScript];
 
 		var request: BasicBatchProcessRequest = {
+			parameters: {maxDuration:duration*2},
 			inputs: inputsArray,
 			image: DOCKER_IMAGE_DEFAULT,
 			cmd: ["/bin/sh", '/$DIRECTORY_INPUTS/$scriptName'],
@@ -101,7 +102,9 @@ cat /$DIRECTORY_INPUTS/$inputName1 > /$DIRECTORY_OUTPUTS/$outputName2
 			inputsPath: customInputsPath,
 			outputsPath: customOutputsPath,
 			meta: {
-				name: testName
+				name: testName,
+				maxDuration: duration*2,
+				sleep: 'sleep ${duration}s'
 			},
 			wait: true
 		}

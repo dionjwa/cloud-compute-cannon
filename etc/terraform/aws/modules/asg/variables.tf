@@ -2,6 +2,10 @@ variable "instance_type" {
   default = "t2.micro"
 }
 
+variable "gpu" {
+  default = "0"
+}
+
 variable "s3_access_key" {}
 variable "s3_secret_key" {}
 variable "s3_region" {}
@@ -20,15 +24,7 @@ variable "region" {
   description = "AWS region"
 }
 
-# variable "availability_zones" {
-#   type = "list"
-# }
-
 variable "vpc_id" {}
-
-# variable "vpc_zone_identifier" {
-#   type = "list"
-# }
 
 variable "max_size" {
   default = 4
@@ -57,4 +53,3 @@ variable "fluent_port" {
 variable "log_level" {
   default = "debug"
 }
-

@@ -73,7 +73,7 @@ class ServiceMonitorRequest
 	@inject('StatusStream') public var _JOB_STREAM :Stream<JobStatsData>;
 	@inject public var redis :RedisClient;
 	@inject public var injector :Injector;
-	@inject public var _queue :js.npm.bull.Bull.Queue<ccc.QueueJobDefinition,ccc.compute.worker.QueueJobResults>;
+	@inject public var _queues :Queues;
 
 	var log :AbstractLogger;
 
@@ -128,7 +128,7 @@ class ServiceMonitorRequest
 		//After the maximum time allowed (plus a second), fail the request
 		timerId = Node.setTimeout(function() {
 			if (promise != null) {
-				_queue.getActiveCount().promhx()
+				_queues.cpu.getActiveCount().promhx()
 					.then(function(count) {
 						if (promise != null) {
 							if (count > 0) {

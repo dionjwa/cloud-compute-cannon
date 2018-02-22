@@ -10,7 +10,9 @@ class LambdaScalingAws
 {
 	static var REDIS_HOST :String  = Node.process.env.get('REDIS_HOST');
 	static var ASG_NAME :String  = Node.process.env.get('ASG_NAME');
-	var _AutoScalingGroup :AutoScalingGroup = null;
+	static var ASG_GPU_NAME :String  = Node.process.env.get('ASG_GPU_NAME');
+	var _AutoScalingGroupCpu :AutoScalingGroup = null;
+	var _AutoScalingGroupGpu :AutoScalingGroup = null;
 
 	var autoscaling = new AutoScaling();
 	var ec2 = new EC2();
@@ -69,10 +71,13 @@ class LambdaScalingAws
 		super();
 	}
 
-	override public function setDesiredCapacity(desiredWorkerCount :Int) :Promise<String>
+	override public function setDesiredCapacity(type :AsgType, desiredWorkerCount :Int) :Promise<String>
 	{
-		return getAutoScalingGroup()
+		return getAutoScalingGroup(type)
 			.pipe(function(asg :AutoScalingGroup) {
+				if (asg == null) {
+					return Promise.promise('No ASG type=$type, ignoring desiredWorkerCount=$desiredWorkerCount');
+				}
 				var promise = new DeferredPromise();
 				var params = {
 					AutoScalingGroupName: asg.AutoScalingGroupName,
@@ -84,7 +89,7 @@ class LambdaScalingAws
 					if (err != null) {
 						promise.boundPromise.reject(err);
 					} else {
-						promise.resolve('Increased DesiredCapacity ${asg.DesiredCapacity} => ${desiredWorkerCount}');
+						promise.resolve('type=$type Increased DesiredCapacity ${asg.DesiredCapacity} => ${desiredWorkerCount}');
 					}
 				});
 				return promise.boundPromise;
@@ -95,10 +100,13 @@ class LambdaScalingAws
 	 * This does not remove workers with running jobs
 	 * @return [description]
 	 */
-	function scaleDownToMinimumWorkers()
+	function scaleDownToMinimumWorkers(type :AsgType)
 	{
-		return getAutoScalingGroup()
+		return getAutoScalingGroup(type)
 			.pipe(function(asg) {
+				if (asg == null) {
+					return Promise.promise('No ASG type=$type, ignoring scaleDownToMinimumWorkers');
+				}
 				var NewDesiredCapacity = asg.MinSize;
 				var instancesToKill = asg.DesiredCapacity - NewDesiredCapacity;
 				redis.debugLog({
@@ -110,7 +118,7 @@ class LambdaScalingAws
 					instancesToKill: asg.DesiredCapacity - NewDesiredCapacity
 				});
 				if (instancesToKill > 0) {
-					return removeIdleWorkers(instancesToKill)
+					return removeIdleWorkers(type, instancesToKill)
 						.then(function(actualInstancesKilled) {
 							return "Actual instaces killed: " + Json.stringify(actualInstancesKilled);
 						});
@@ -120,25 +128,37 @@ class LambdaScalingAws
 			});
 	}
 
-	override function getInstanceIds() :Promise<Array<String>>
+	override function getInstanceIds(type :AsgType) :Promise<Array<String>>
 	{
-		return getAutoScalingGroup()
+		return getAutoScalingGroup(type)
 			.then(function(asg :AutoScalingGroup) {
-				return asg.Instances.map(function(i) {
-					return i.InstanceId;
-				});
+				if (asg != null) {
+					return asg.Instances.map(function(i) {
+						return i.InstanceId;
+					});
+				} else {
+					return [];
+				}
 			});
 	}
 
-	override function getMinMaxDesired() :Promise<MinMaxDesired>
+	override function getMinMaxDesired(type :AsgType) :Promise<MinMaxDesired>
 	{
-		return getAutoScalingGroup()
+		return getAutoScalingGroup(type)
 			.then(function(asg :AutoScalingGroup) {
-				return {
-					MinSize: asg.MinSize,
-					MaxSize: asg.MaxSize,
-					DesiredCapacity: asg.DesiredCapacity
-				};
+				if (asg != null) {
+					return {
+						MinSize: asg.MinSize,
+						MaxSize: asg.MaxSize,
+						DesiredCapacity: asg.DesiredCapacity
+					};
+				} else {
+					return {
+						MinSize: 0,
+						MaxSize: 0,
+						DesiredCapacity: 0
+					};
+				}
 			});
 	}
 
@@ -146,22 +166,36 @@ class LambdaScalingAws
 	 * Returns the AutoScalingGroup name with the
 	 * tag: stack=<stackKeyValue>
 	 */
-	function getAutoScalingGroupName() :Promise<String>
+	function getAutoScalingGroupName(type :AsgType) :Promise<String>
 	{
-		return getAutoScalingGroup()
+		return getAutoScalingGroup(type)
 			.then(function(asg :AutoScalingGroup) {
-				return asg.AutoScalingGroupName;
+				return asg != null ? asg.AutoScalingGroupName : null;
 			});
 	}
 
-	function getAutoScalingGroup() :Promise<AutoScalingGroup>
+	static function isValidAsgName(name :String) :Bool
 	{
-		if (_AutoScalingGroup != null) {
-			return Promise.promise(_AutoScalingGroup);
+		return name != null && name.length > 2;
+	}
+
+	function getAutoScalingGroup(type :AsgType) :Promise<AutoScalingGroup>
+	{
+		if (type == AsgType.CPU && _AutoScalingGroupCpu != null) {
+			return Promise.promise(_AutoScalingGroupCpu);
+		} else if (type == AsgType.GPU && _AutoScalingGroupGpu != null) {
+			return Promise.promise(_AutoScalingGroupGpu);
 		} else {
+			if (type == AsgType.CPU && !isValidAsgName(ASG_NAME)) {
+				return Promise.promise(null);
+			}
+			if (type == AsgType.GPU && !isValidAsgName(ASG_GPU_NAME)) {
+				return Promise.promise(null);
+			}
+
 			var promise = new DeferredPromise();
 			var params :DescribeAutoScalingGroupsParams = {
-				AutoScalingGroupNames: [ASG_NAME]
+				AutoScalingGroupNames: [ type == AsgType.CPU ? ASG_NAME : ASG_GPU_NAME ]
 			};
 			redis.infoLog(params);
 			redis.infoLog('autoscaling.describeAutoScalingGroups');
@@ -200,11 +234,15 @@ class LambdaScalingAws
 				redis.infoLog('describeAutoScalingGroups data=${Json.stringify(data).substr(0, 100)}');
 				redis.infoLog('describeAutoScalingGroups err=$err');
 				var asgs = data.AutoScalingGroups != null ? data.AutoScalingGroups : [];
-				if (asgs[0] != null) {
-					_AutoScalingGroup = asgs[0];
+				var asg = asgs[0];
+				if (asg != null) {
+					switch(type) {
+						case CPU: _AutoScalingGroupCpu = asg;
+						case GPU: _AutoScalingGroupGpu = asg;
+					}
 				}
-				redis.infoLog({cccAutoScalingGroup: _AutoScalingGroup});
-				cleanup(null, _AutoScalingGroup);
+				redis.infoLog({cccAutoScalingGroup: asg});
+				cleanup(null, asg);
 			});
 
 			return promise.boundPromise;
@@ -286,47 +324,56 @@ class LambdaScalingAws
 			});
 	}
 
-	override function removeIdleWorkers(maxWorkersToRemove :Int) :Promise<Array<String>>
+	override function removeIdleWorkers(type :AsgType, maxWorkersToRemove :Int) :Promise<Array<String>>
 	{
 		redis.infoLog({f:'removeIdleWorkers', maxWorkersToRemove:maxWorkersToRemove});
 		var actualInstancesTerminated :Array<String> = [];
-		return getInstancesReadyForTermination()
-			.pipe(function(workersReadyToDie) {
-				redis.debugLog({f:'removeIdleWorkers', workersReadyToDie:workersReadyToDie});
-				while (workersReadyToDie.length > maxWorkersToRemove) {
-					workersReadyToDie.pop();
+		return isAsg(type)
+			.pipe(function(exists) {
+				if (!exists) {
+					return Promise.promise(actualInstancesTerminated);
 				}
-				return Promise.whenAll(workersReadyToDie.map(function(instanceId) {
-					return getAutoScalingGroupName()
-						.pipe(function(asgName) {
-							var promise = new DeferredPromise();
-							var params = {
-								InstanceId: instanceId,
-								ShouldDecrementDesiredCapacity: true
-							};
-							redis.debugLog({f:'removeIdleWorkers', message: 'terminateInstanceInAutoScalingGroup', params:params});
-							actualInstancesTerminated.push(instanceId);
-							autoscaling.terminateInstanceInAutoScalingGroup(params, function(err, data) {
-								if (err != null) {
-									promise.boundPromise.reject(err);
-								} else {
-									redis.debugLog({f:'removeIdleWorkers', message: 'Removed ${instanceId} and decremented asg'});
-									promise.resolve(data);
-								}
-							});
-							return promise.boundPromise;
-						});
-				}));
-			})
-			.then(function(_) {
-				return actualInstancesTerminated;
+				return getInstancesReadyForTermination(type)
+					.pipe(function(workersReadyToDie) {
+						redis.debugLog({f:'removeIdleWorkers', workersReadyToDie:workersReadyToDie});
+						while (workersReadyToDie.length > maxWorkersToRemove) {
+							workersReadyToDie.pop();
+						}
+						return Promise.whenAll(workersReadyToDie.map(function(instanceId) {
+							return getAutoScalingGroupName(type)
+								.pipe(function(asgName) {
+									var promise = new DeferredPromise();
+									var params = {
+										InstanceId: instanceId,
+										ShouldDecrementDesiredCapacity: true
+									};
+									redis.debugLog({f:'removeIdleWorkers', message: 'terminateInstanceInAutoScalingGroup', params:params});
+									actualInstancesTerminated.push(instanceId);
+									autoscaling.terminateInstanceInAutoScalingGroup(params, function(err, data) {
+										if (err != null) {
+											promise.boundPromise.reject(err);
+										} else {
+											redis.debugLog({f:'removeIdleWorkers', message: 'Removed ${instanceId} and decremented asg'});
+											promise.resolve(data);
+										}
+									});
+									return promise.boundPromise;
+								});
+						}));
+					})
+					.then(function(_) {
+						return actualInstancesTerminated;
+					});
 			});
 	}
 
-	override function removeUnhealthyWorkers() :Promise<Bool>
+	override function removeUnhealthyWorkers(type :AsgType) :Promise<Bool>
 	{
+		trace('!!!Disabling removeUnhealthyWorkers for now');
+		return Promise.promise(false);
+
 		trace('removeUnhealthyWorkers');
-		return getAutoScalingGroup()
+		return getAutoScalingGroup(type)
 			.pipe(function(asg) {
 				if (asg == null) {
 					redis.infoLog('removeUnhealthyWorkers asg == null');
@@ -345,8 +392,8 @@ class LambdaScalingAws
 								redis.infoLog({instanceId:instanceId, healthString:healthString});
 								return getInstanceMinutesSinceLaunch(instanceId)
 									.pipe(function(minutesSinceLaunch) {
-										if (minutesSinceLaunch > 10) {
-											redis.infoLog({instanceId:instanceId, message:'Terminating ${instanceId} health status != OK', status:healthString, minutesSinceLaunch:minutesSinceLaunch});
+										if (minutesSinceLaunch > 15) {
+											redis.infoLog({instanceId:instanceId, message:'!!!!!!Terminating ${instanceId} health status != OK', status:healthString, minutesSinceLaunch:minutesSinceLaunch});
 											return terminateWorker(instanceId)
 												.then(function(_) {
 													return true;
@@ -390,5 +437,11 @@ class LambdaScalingAws
 			});
 	}
 
-
+	function isAsg(type :AsgType) :Promise<Bool>
+	{
+		return getAutoScalingGroup(type)
+			.then(function(asg) {
+				return asg != null;
+			});
+	}
 }

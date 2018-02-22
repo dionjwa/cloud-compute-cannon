@@ -1,5 +1,6 @@
 variable "s3_access_key" {}
 variable "s3_secret_key" {}
+variable "version" {}
 
 variable "single_node" {
   description = "Is this cloud compute just a single node? This is fast and cheap, as a lot of infrastructure is not created"
@@ -16,7 +17,9 @@ variable "multi-zone" {
   default = false
 }
 
-
+variable "gpu" {
+  default = "0"
+}
 
 # locals {
 #   ccc_type_single_node = "ccc_type_single_node"

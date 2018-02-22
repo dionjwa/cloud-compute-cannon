@@ -50,7 +50,10 @@ class ServiceBatchComputeTools
 
 		var promise = new DeferredPromise<JobResultsTurboV2>();
 
-		var bullQueue :js.npm.bull.Queue<ccc.QueueJobDefinition, ccc.compute.worker.QueueJobResults> = injector.getValue('js.npm.bull.Queue<ccc.QueueJobDefinition, ccc.compute.worker.QueueJobResults>');
+		var bullQueues = injector.getValue(Queues);
+		Assert.notNull(bullQueues);
+
+		var bullQueue :Queue<QueueJobDefinition, ccc.compute.worker.QueueJobResults> = job.parameters != null && job.parameters.gpu ? bullQueues.gpu : bullQueues.cpu;
 		Assert.notNull(bullQueue);
 
 		var jobCompletedHandler;
