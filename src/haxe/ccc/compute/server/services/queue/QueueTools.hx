@@ -6,6 +6,8 @@ import ccc.compute.worker.QueueJobResults;
 
 import js.npm.bull.Bull;
 
+
+
 class QueueTools
 {
 	public static function initJobQueue(injector :Injector)
@@ -13,26 +15,40 @@ class QueueTools
 		var redisHost :String = ServerConfig.REDIS_HOST;
 		var redisPort :Int = ServerConfig.REDIS_PORT;
 		var queueName :String = BullQueueNames.JobQueue;
-		var queue : js.npm.bull.Bull.Queue<QueueJobDefinition,QueueJobResults> = new js.npm.bull.Bull.Queue(queueName, {redis:{port:redisPort, host:redisHost}});
-		// Notice the space and the specific package names.
-		// minject cannot handle classes with parameters unless you use
-		// strings, but the strings must be exactly formatted.
-		injector.map('js.npm.bull.Queue<ccc.QueueJobDefinition, ccc.compute.worker.QueueJobResults>').toValue(queue);
+		var queue : js.npm.bull.Bull.Queue<QueueJobDefinition,QueueJobResults> = new js.npm.bull.Bull.Queue(BullQueueNames.JobQueue, {redis:{port:redisPort, host:redisHost}});
+		var queueGpu : js.npm.bull.Bull.Queue<QueueJobDefinition,QueueJobResults> = new js.npm.bull.Bull.Queue(BullQueueNames.JobQueueGpu, {redis:{port:redisPort, host:redisHost}});
+		var queues = new Queues(queue, queueGpu);
+		injector.map(ccc.compute.server.services.queue.Queues).toValue(queues);
 	}
 
-	public static function getQueue(injector :Injector) :Queue<QueueJobDefinition,QueueJobResults>
+	public static function getQueues(injector :Injector) :Queues
 	{
-		return injector.getValue('js.npm.bull.Queue<ccc.QueueJobDefinition, ccc.compute.worker.QueueJobResults>');
+		return injector.getValue(ccc.compute.server.services.queue.Queues);
 	}
 
-	public static function getQueueSizes(injector :Injector) :Promise<BullJobCounts>
+	public static function getQueueSizes(injector :Injector) :Promise<{cpu:BullJobCounts,gpu:BullJobCounts}>
 	{
-		return getQueue(injector).getJobCounts().promhx();
+		var queues = getQueues(injector);
+		return queues.cpu.getJobCounts().promhx()
+			.pipe(function(cpuJobCounts) {
+				return queues.gpu.getJobCounts().promhx()
+					.then(function(gpuJobCounts) {
+						return {
+							cpu: cpuJobCounts,
+							gpu: gpuJobCounts
+						};
+					});
+			});
 	}
 
 	public static function addJob(injector :Injector, job :QueueJobDefinition, ?log :AbstractLogger) :Promise<Bool>
 	{
-		var queue = getQueue(injector);
+		var queues = getQueues(injector);
+		var queue = if (job.parameters.gpu) {
+			queues.gpu;
+		} else {
+			queues.cpu;
+		}
 		return addJobToQueue(queue, job, log);
 	}
 

@@ -126,6 +126,7 @@ class Server
 
 				//RPC machinery
 				var serviceRoutes = ccc.compute.server.execution.routes.RpcRoutes.router(injector);
+				//start at /api
 				injector.getValue(Application).use(SERVER_API_URL, serviceRoutes);
 
 				//Also start using versioned APIs

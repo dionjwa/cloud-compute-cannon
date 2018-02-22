@@ -1,3 +1,3 @@
-variable "version" {
-  default = "0.3.0"
+variable "server_version" {
+  default = "0.3.1-alpha-gpu-004"
 }

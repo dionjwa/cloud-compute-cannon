@@ -1,6 +1,9 @@
 package ccc.compute.worker.job.stats;
 
 import util.DateFormatTools;
+
+import ccc.SharedConstants.*;
+
 /**
  * Values stored here are not removed when the job data is removed, since
  * they are needed for health monitoring etc. This data is only removed
@@ -11,12 +14,12 @@ class JobStatsTools
 {
 	static var PREFIX = '${JOBSPREFIX}${SEP}stats${SEP}';
 	public static var REDIS_KEY_ZSET_PREFIX_WORKER_JOBS = '${JOBSPREFIX}zset${SEP}worker_jobs${SEP}';//<JobId>
-	public static var REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_ACTIVE = '${JOBSPREFIX}zset${SEP}worker_jobs_active${SEP}';//<JobId>
+
 	public static var REDIS_KEY_HASH_JOB_WORKER = '${JOBSPREFIX}hash${SEP}jobid_to_workerid';//<JobId, MachineId>
 	public static var REDIS_ZSET_JOBS_ACTIVE = '${PREFIX}zset${SEP}jobs_active';
+	public static var REDIS_ZSET_JOBS_FINISHED = '${PREFIX}zset${SEP}jobs_finished';
 	/* Yes I need a sorted set AND a set because you cannot do intersections between types */
 	public static var REDIS_SET_JOBS_ACTIVE = '${PREFIX}set${SEP}jobs_active';
-	static var REDIS_ZSET_JOBS_FINISHED = '${PREFIX}zset${SEP}jobs_finished';
 
 	/* This channel has the JSONified entire job state */
 	public static var REDIS_CHANNEL_JOB_PREFIX = '${JOBSPREFIX}channel${SEP}';
@@ -144,6 +147,7 @@ class JobStatsTools
 				local workerId = redis.call("HGET", "${REDIS_KEY_HASH_JOB_WORKER}", jobId)
 				if workerId then
 					redis.call("ZREM", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_ACTIVE}" .. workerId, jobId)
+					redis.call("ZADD", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_FINISHED}" .. workerId, time, jobId)
 				end
 
 				jobstats.statusFinished = stateFinished
@@ -202,10 +206,13 @@ class JobStatsTools
 		${SNIPPET_LOAD_CURRENT_JOB_STATS}
 		return cjson.encode(jobstats)
 	'})
-	static function getInternal(jobId :JobId) :Promise<String> {}
-	public static function get(jobId :JobId) :Promise<JobStatsData>
+	static function getJobStatsDataInternal(jobId :JobId) :Promise<String> {}
+	public static function getJobStatsData(jobId :JobId) :Promise<JobStatsData>
 	{
-		return getInternal(jobId)
+		if (jobId == null) {
+			return Promise.promise(null);
+		}
+		return getJobStatsDataInternal(jobId)
 			.then(function(dataString) {
 				if (dataString != null) {
 					return Json.parse(dataString);
@@ -255,7 +262,7 @@ class JobStatsTools
 
 	public static function getPretty(jobId :JobId) :Promise<PrettyStatsData>
 	{
-		return get(jobId)
+		return getJobStatsData(jobId)
 			.then(function(stats :JobStatsData) {
 				if (stats != null) {
 					return toPretty(stats);
@@ -382,6 +389,7 @@ class JobStatsTools
 		redis.call("ZREM", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_ACTIVE}" .. existingWorkerId, jobId)
 	end
 	redis.call("ZADD", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_ACTIVE}" .. workerId, time, jobId)
+
 	redis.call("HSET", "${REDIS_KEY_HASH_JOB_WORKER}", jobId, workerId)
 	${SNIPPET_LOAD_CURRENT_JOB_STATS_AND_DATA}
 	jobData.dequeued = time

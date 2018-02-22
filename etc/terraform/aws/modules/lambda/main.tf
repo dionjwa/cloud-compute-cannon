@@ -87,6 +87,7 @@ resource "aws_lambda_function" "terraform_ccc_lambda_scale" {
     variables {
       REDIS_HOST = "${var.redis_host}"
       ASG_NAME = "${var.asg_name}"
+      ASG_GPU_NAME = "${var.asg_gpu_name}"
     }
   }
 

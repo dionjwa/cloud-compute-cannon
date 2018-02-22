@@ -464,7 +464,7 @@ class JobCommands
 	public static function getJobStats(injector :Injector, jobId :JobId, ?raw :Bool = false) :Promise<Dynamic>
 	{
 		if (raw) {
-			return cast JobStatsTools.get(jobId);
+			return cast JobStatsTools.getJobStatsData(jobId);
 		} else {
 			return JobStatsTools.getPretty(jobId);
 		}
@@ -472,8 +472,10 @@ class JobCommands
 
 	public static function deletingPending(injector :Injector) :Promise<DynamicAccess<String>>
 	{
+		trace('deletingPending, pending=');
 		return pending()
 			.pipe(function(jobIds) {
+				trace('deletingPending, jobIds=$jobIds');
 				var result :DynamicAccess<String> = {};
 				return Promise.whenAll(jobIds.map(function(jobId) {
 					return killJob(injector, jobId)
@@ -486,6 +488,19 @@ class JobCommands
 							return Promise.promise(false);
 						});
 				}))
+
+
+					.pipe(function(_) {
+							//Check the queue
+							trace('After all jobs killed');
+							return ccc.compute.server.services.status.SystemStatusManager.getStatus(injector)
+								.then(function(status) {
+									traceYellow(Json.stringify(status, null, '  '));
+									return true;
+								});
+						})
+
+
 				.then(function(_) {
 					return result;
 				});
@@ -494,6 +509,7 @@ class JobCommands
 
 	public static function deleteAllJobs(injector :Injector) //:{total:Int,pending:Int,running:Int}
 	{
+		trace('deleteAllJobs');
 		return deletingPending(injector)
 			.pipe(function(pendingDeleted) {
 				return killAllWorkingJobs(injector)

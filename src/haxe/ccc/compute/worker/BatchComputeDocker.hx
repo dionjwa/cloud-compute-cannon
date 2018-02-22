@@ -583,6 +583,11 @@ class BatchComputeDocker
 						opts.HostConfig.Binds.push(mount.Source + ':' + mount.Destination + ':rw');
 					}
 
+					if (job.parameters != null && job.parameters.gpu) {
+						traceGreen('ADDING GPU Runtime=nvidia');
+						Reflect.setField(opts.HostConfig, "Runtime", "nvidia");
+					}
+
 					opts.Image = opts.Image != null ? opts.Image : imageId.toLowerCase();
 					opts.Env = t9.redis.RedisLuaTools.isArrayObjectEmpty(opts.Env) ? [] : opts.Env;
 					for (env in [

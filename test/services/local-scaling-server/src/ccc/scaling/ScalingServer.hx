@@ -31,6 +31,7 @@ class ScalingServer
 				return createHttpServer(injector);
 			})
 			.then(function(_) {
+				trace('ScalingServerConfig.RUN_TESTS_ON_START=${ScalingServerConfig.RUN_TESTS_ON_START}');
 				if (ScalingServerConfig.RUN_TESTS_ON_START) {
 					injector.getValue(ScalingRoutes).test();
 				}

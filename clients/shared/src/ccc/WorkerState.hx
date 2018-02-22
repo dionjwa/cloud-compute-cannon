@@ -4,6 +4,7 @@ typedef WorkerState = {
 	var starts :Array<Float>;
 	var id :MachineId;
 	var DockerInfo :Dynamic;
+	var gpu :Bool;
 	var diskTotal: Float;
 	var diskUsed: Float;
 	var status :WorkerStatus;

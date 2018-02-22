@@ -18,3 +18,23 @@ variable "amis" {
     ca-central-1 = "ami-fc5fe798"
   }
 }
+
+#For GPU instances
+variable "amis-ubuntu" {
+  type = "map"
+  default = {
+    us-east-2 = "ami-4f80b52a"
+    us-east-1 = "ami-0b383171"
+    us-west-2 = "ami-c62eaabe"
+    us-west-1 = "ami-9cb2bdfc"
+    eu-west-1 = "ami-c1167eb8"
+    eu-west-2 = "ami-e0bc5987"
+    eu-west-3 = "ami-6bad1b16"
+    eu-central-1 = "ami-714f2b1e"
+    ap-northeast-2 = "ami-35a3015b"
+    ap-northeast-1 = "ami-adceb9cb"
+    ap-southeast-2 = "ami-e1c43f83"
+    ap-southeast-1 = "ami-a55c1dd9"
+    ca-central-1 = "ami-c7a622a3"
+  }
+}

@@ -155,7 +155,7 @@ class WorkerStateManager
 
 	public function setHealthStatus(status :WorkerHealthStatus) :Promise<Bool>
 	{
-		log.info(LogFieldUtil.addWorkerEvent({status:status}, status == WorkerHealthStatus.OK ? WorkerEventType.HEALTHY : WorkerEventType.UNHEALTHY));
+		log.debug(LogFieldUtil.addWorkerEvent({status:status}, status == WorkerHealthStatus.OK ? WorkerEventType.HEALTHY : WorkerEventType.UNHEALTHY));
 		return WorkerStateRedis.setHealthStatus(_id, status);
 	}
 
@@ -191,7 +191,7 @@ class WorkerStateManager
 							case AWS:
 						}
 
-						return WorkerStateRedis.initializeWorker(id, dockerinfo);
+						return WorkerStateRedis.initializeWorker(id, dockerinfo, ServerConfig.GPUS > 0 ? "1" : "0");
 					});
 			});
 	}

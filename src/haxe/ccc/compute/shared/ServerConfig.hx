@@ -48,6 +48,12 @@ class ServerConfig
 	@NodeProcessVar
 	public static var AWS_S3_REGION :String;
 
+	/**
+	 * Is this a GPU node?
+	 */
+	@NodeProcessVar
+	public static var GPUS :Int = 0;
+
 	@NodeProcessVar
 	public static var STORAGE_PATH_BASE :String = "/jobs";
 
@@ -99,7 +105,7 @@ class ServerConfig
 	 * dashboard in an iframe.
 	 */
 	@NodeProcessVar
-	public static var KIBANA_URL :String = 'http://localhost:5601';
+	public static var KIBANA_URL :String;
 
 	/**
 	 * Bunyan log level (trace|debug|info|warn|error|critical)

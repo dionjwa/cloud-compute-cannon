@@ -123,3 +123,42 @@ The script below will git tag the version in `package.json`, update local copies
 ## Environmental variables
 
 [Environment variables that configure the application](../src/haxe/ccc/compute/shared/ServerConfig.hx)
+
+## Developing with a live AWS stack
+
+Example:
+
+	cd etc/terraform/aws/examples/gpu-single
+
+Create a local `terraform.tfvars` file:
+
+	access_key = "XXX"
+	secret_key = "XXX"
+	region = "us-west-1"
+	public_key = "XXX"
+
+Then run the stack:
+
+	terraform apply
+
+Now the stack is running.
+
+Make sure you have your docker keys in `.env`:
+
+	DOCKER_USERNAME=XXX
+	DOCKER_PASSWORD=XXX
+
+
+1. Make code changes
+2. Change `package.json#version`
+3. ./bin/build-and-push
+4. Update etc/terraform/aws/examples/gpu-single/terraform.tfvars with the new version
+5. pushd etc/terraform/aws/examples/gpu-single && terraform apply && popd
+6. Test.
+
+
+
+
+
+
+

@@ -69,10 +69,13 @@ class RedisDependencies
 				return ccc.compute.worker.job.JobStream.init(redis);
 			})
 			.pipe(function(_) {
-				return ccc.lambda.RedisLogGetter.init(injector.getValue(RedisClient));
+				return ccc.lambda.RedisLogGetter.init(redis);
 			})
 			.pipe(function(_) {
-				return ccc.WorkerStateRedis.init(injector.getValue(RedisClient));
+				return ccc.WorkerStateRedis.init(redis);
+			})
+			.pipe(function(_) {
+				return ccc.compute.server.services.status.SystemStatusManager.init(redis);
 			});
 	}
 }

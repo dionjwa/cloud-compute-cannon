@@ -143,7 +143,7 @@ class TestFailureConditions extends ServerAPITestBase
 				return JobStream.getStatusStream().waitUntilJobIsOnAttemptNumber(jobId, 2);
 			})
 			.pipe(function(_) {
-				return JobStatsTools.get(jobId)
+				return JobStatsTools.getJobStatsData(jobId)
 					.then(function(jobStats) {
 						// traceYellow('jobStats=${Json.stringify(jobStats, null, "  ")}');
 						assertTrue(jobStats.attempts.length > 1);
@@ -154,7 +154,7 @@ class TestFailureConditions extends ServerAPITestBase
 				return JobStream.getStatusStream().waitUntilJobIsFinished(jobId);
 			})
 			.pipe(function(_) {
-				return JobStatsTools.get(jobId)
+				return JobStatsTools.getJobStatsData(jobId)
 					.then(function(jobStats) {
 						assertEquals(jobStats.statusWorking, JobWorkingStatus.FinishedWorking);
 						assertEquals(jobStats.status, JobStatus.Finished);

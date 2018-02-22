@@ -71,13 +71,18 @@ class QueueJobs
 	@inject('StatusStream') public var statusStream :Stream<ccc.JobStatsData>;
 	@inject('WorkerStream') public var _workerStream :Stream<ccc.WorkerState>;
 	@inject public var internalState :WorkerStateInternal;
-	@inject public var queueAdd :Queue<QueueJobDefinition,QueueJobResults>;
+	@inject public var queuesAdd :ccc.compute.server.services.queue.Queues;
 
 	public var queueProcess (default, null) :Queue<QueueJobDefinition,QueueJobResults>;
+	public var queueProcessGpu (default, null) :Queue<QueueJobDefinition,QueueJobResults>;
 
 	public var cpus (get, null):Int;
 	var _cpus :Int = 1;
 	function get_cpus() :Int {return _cpus;}
+
+	public var gpus (get, null):Int;
+	var _gpus :Int = 1;
+	function get_gpus() :Int {return _gpus;}
 
 	public var jobs (get, null):Int;
 	var _jobs :Int = 0;
@@ -97,7 +102,7 @@ class QueueJobs
 		return !_localJobProcess.keys().hasNext();
 	}
 
-	public function getQueues() :Promise<BullJobCounts>
+	public function getQueues() :Promise<{cpu:BullJobCounts,gpu:BullJobCounts}>
 	{
 		return QueueTools.getQueueSizes(_injector);
 	}
@@ -109,39 +114,12 @@ class QueueJobs
 	 */
 	public function add(job :QueueJobDefinition) :Promise<Bool>
 	{
-		return QueueTools.addJobToQueue(queueAdd, job, log)
+		var isGpu = job.parameters != null && job.parameters.gpu;
+		return QueueTools.addJobToQueue(isGpu ? queuesAdd.gpu : queuesAdd.cpu, job, log)
 			.then(function(_) {
 				postQueueSize();
 				return true;
 			});
-		// job.attempt = 1;
-		// return switch(job.type) {
-		// 	case compute:
-		// 		Promise.promise(true)
-		// 			.pipe(function(_) {
-		// 				var def :DockerBatchComputeJob = job.item;
-		// 				log.info(LogFieldUtil.addJobEvent({jobId:job.id, attempt:1, type:job.type, message:'via ProcessQueue', meta: def.meta}, JobEventType.ENQUEUED));
-
-		// 				return Promise.whenAll([
-		// 					Jobs.setJob(job.id, job.item),
-		// 					Jobs.setJobParameters(job.id, job.parameters),
-		// 					JobStatsTools.jobEnqueued(job.id, job.item)
-		// 						.thenTrue()
-		// 				]);
-		// 			})
-		// 			.then(function(_) {
-		// 				queueAdd.add(job, {jobId:job.id, priority:(job.priority ? 1 : 1000), removeOnComplete:true, removeOnFail:true});
-		// 				postQueueSize();
-		// 				return true;
-		// 			});
-		// 	case turbo:
-		// 		var def :BatchProcessRequestTurboV2 = job.item;
-		// 		log.info(LogFieldUtil.addJobEvent({jobId:job.id, attempt:1, type:job.type, message:'via ProcessQueue', meta: def.meta}, JobEventType.ENQUEUED));
-		// 		var maxTime = 300000;//5 minutes max
-		// 		queueAdd.add(job, {jobId:job.id, priority:1, removeOnComplete:true, removeOnFail:true, timeout:maxTime});
-		// 		postQueueSize();
-		// 		Promise.promise(true);
-		// }
 	}
 
 	public function cancel(jobId :JobId) :Promise<Bool>
@@ -153,7 +131,7 @@ class QueueJobs
 		return Promise.promise(true);
 	}
 
-	public function stopQueue() :Promise<Bool>
+	public function stopQueues() :Promise<Bool>
 	{
 		queueProcess.close();
 		if (_jobs == 0) {
@@ -224,7 +202,10 @@ class QueueJobs
 											log.warn({message: 'Retrying!', previous_attempt:attempt, attempt:newAttempt});
 											var newQueueJob = Reflect.copy(queuejob.data);
 											newQueueJob.attempt = newAttempt;
-											queueAdd.add(newQueueJob, {removeOnComplete:true});
+
+											var isGpu = queueJob.data.parameters != null  && queueJob.data.parameters.gpu;
+											var queue = isGpu ? queuesAdd.gpu : queuesAdd.cpu;
+											queue.add(newQueueJob, {removeOnComplete:true});
 											return true;
 										});
 								} else {
@@ -256,7 +237,7 @@ class QueueJobs
 				BatchComputeDockerTurbo.executeTurboJobV2(redis, jobDef, docker, thisMachineId, log)
 					.pipe(function(result) {
 						done(null, result);
-						return JobStatsTools.get(jobDef.id)
+						return JobStatsTools.getJobStatsData(jobDef.id)
 							.then(function(jobstats) {
 								var duration = jobstats != null ? jobstats.finished - jobstats.requestReceived : null;
 								log.info(LogFieldUtil.addJobEvent({exitCode:result.exitCode, duration:duration, error:result.error, jobId:jobDef.id, worker:_workerId, type:queueJob.data.type}, JobEventType.FINISHED));
@@ -291,6 +272,7 @@ class QueueJobs
 		DockerPromises.info(_docker)
 			.then(function(dockerInfo) {
 				_cpus = dockerInfo.NCPU;
+				_gpus = ServerConfig.GPUS;
 
 				switch (ServerConfig.CLOUD_PROVIDER_TYPE) {
 					case Local: _cpus = 1;
@@ -299,78 +281,91 @@ class QueueJobs
 
 				internalState.ncpus = _cpus;
 
-				queueProcess = queueAdd;
+				queueProcess = queuesAdd.cpu;
+				queueProcessGpu = queuesAdd.gpu;
 
-				function processor(job, done) {
-					this.jobProcesser(job, done);
-				}
-				queueProcess.process(_cpus, processor);
+				for (type in ['cpu','gpu']) {
+					var isGpu = type == 'gpu';
 
-				queueProcess.on(QueueEvent.Error, function(err) {
-					log.error({e:QueueEvent.Error, error:Json.stringify(err)});
-				});
+					var localQueueProcess = isGpu ? queuesAdd.gpu : queuesAdd.cpu;
 
-				queueProcess.on(QueueEvent.Active, function(job, promise) {
-					try {
-						log.debug({e:QueueEvent.Active, jobId:job.data.id});
-					} catch(err :Dynamic) {trace(err);}
-				});
+					function processor(job, done) {
+						this.jobProcesser(job, done);
+					}
+					if (isGpu && _gpus > 0) {
+						localQueueProcess.process(_gpus, processor);
+					} else if (!isGpu) {
+						localQueueProcess.process(_cpus, processor);
+					}
 
-				queueProcess.on(QueueEvent.Stalled, function(job) {
-					log.warn({e:QueueEvent.Stalled, jobId:job.data.id});
-				});
+					localQueueProcess.on(QueueEvent.Error, function(err) {
+						log.error({e:QueueEvent.Error, error:Json.stringify(err)});
+					});
 
-				queueProcess.on(QueueEvent.Progress, function(job, progress) {
-					log.debug({e:QueueEvent.Progress, jobId:job.data.id, progress:progress});
-				});
+					localQueueProcess.on(QueueEvent.Active, function(job, promise) {
+						try {
+							log.debug({e:QueueEvent.Active, jobId:job.data.id});
+						} catch(err :Dynamic) {trace(err);}
+					});
 
-				queueProcess.on(QueueEvent.Completed, function(j :Job<Dynamic>, result) {
-					//Turbo jobs get logged elsewhere
-					var job :Job<QueueJobDefinition> = cast j;
-					var item :DockerBatchComputeJob = job.data.item;
-					log.debug({e:QueueEvent.Completed, jobId: item.id});
-					if (job.data.type == QueueJobDefinitionType.compute) {
+					localQueueProcess.on(QueueEvent.Stalled, function(job) {
+						log.warn({e:QueueEvent.Stalled, jobId:job.data.id});
+					});
+
+					localQueueProcess.on(QueueEvent.Progress, function(job, progress) {
+						log.debug({e:QueueEvent.Progress, jobId:job.data.id, progress:progress});
+					});
+
+					localQueueProcess.on(QueueEvent.Completed, function(j :Job<Dynamic>, result) {
+						//Turbo jobs get logged elsewhere
+						var job :Job<QueueJobDefinition> = cast j;
+						var item :DockerBatchComputeJob = job.data.item;
 						log.debug({e:QueueEvent.Completed, jobId: item.id});
-					}
-					postQueueSize();
-				});
+						if (job.data.type == QueueJobDefinitionType.compute) {
+							log.debug({e:QueueEvent.Completed, jobId: item.id});
+						}
+						postQueueSize();
+					});
 
-				queueProcess.on(QueueEvent.Failed, function(job, error :js.Error) {
-					//Turbo jobs get logged elsewhere
-					log.warn({e:QueueEvent.Failed, jobId:job.data.jobId, error:error});
-					if (job.data.type == QueueJobDefinitionType.compute) {
+					localQueueProcess.on(QueueEvent.Failed, function(job, error :js.Error) {
+						//Turbo jobs get logged elsewhere
 						log.warn({e:QueueEvent.Failed, jobId:job.data.jobId, error:error});
-					}
-					if (error.message != null && error.message.indexOf('job stalled more than allowable limit') > -1) {
-						job.retry();
-					}
-					postQueueSize();
-				});
+						if (job.data.type == QueueJobDefinitionType.compute) {
+							log.warn({e:QueueEvent.Failed, jobId:job.data.jobId, error:error});
+						}
+						if (error.message != null && error.message.indexOf('job stalled more than allowable limit') > -1) {
+							job.retry();
+						}
+						postQueueSize();
+					});
 
-				queueProcess.on(QueueEvent.Paused, function() {
-					log.warn({e:QueueEvent.Paused});
-				});
+					localQueueProcess.on(QueueEvent.Paused, function() {
+						log.warn({e:QueueEvent.Paused});
+					});
 
-				queueProcess.on(QueueEvent.Resumed, function(job) {
-					log.debug({e:QueueEvent.Resumed, jobId:job.data.id});
-				});
+					localQueueProcess.on(QueueEvent.Resumed, function(job) {
+						log.debug({e:QueueEvent.Resumed, jobId:job.data.id});
+					});
 
-				queueProcess.on(QueueEvent.Cleaned, function(jobs) {
-					log.debug({e:QueueEvent.Cleaned, jobIds:jobs.map(function(j) return j.data.id).array()});
-					return null;
-				});
+					localQueueProcess.on(QueueEvent.Cleaned, function(jobs) {
+						log.debug({e:QueueEvent.Cleaned, jobIds:jobs.map(function(j) return j.data.id).array()});
+						return null;
+					});
+				}
 
 				_workerStream.then(function(workerState :WorkerState) {
 					if (_isPaused && workerState.status == WorkerStatus.OK) {
-						queueProcess.resume(true).then(function(_) {
-							log.warn({paused:false, status:workerState.status, statusHealth:workerState.statusHealth });
-							_isPaused = false;
-						});
+						Promise.whenAll([queuesAdd.cpu.resume(true).promhx(), queuesAdd.gpu.resume(true).promhx()])
+							.then(function(_) {
+								log.warn({paused:false, status:workerState.status, statusHealth:workerState.statusHealth });
+								_isPaused = false;
+							});
 					} else if (!_isPaused && workerState.status != WorkerStatus.OK) {
-						queueProcess.pause(true).then(function(_) {
-							log.warn({paused:true, status:workerState.status, statusHealth:workerState.statusHealth });
-							_isPaused = true;
-						});
+						Promise.whenAll([queuesAdd.cpu.pause(true).promhx(), queuesAdd.gpu.pause(true).promhx()])
+							.then(function(_) {
+								log.warn({paused:true, status:workerState.status, statusHealth:workerState.statusHealth });
+								_isPaused = true;
+							});
 					}
 				});
 
@@ -518,7 +513,7 @@ class JobProcessObject
 					case Success(jobResult):
 						_done(null, jobResult);
 						_deferred.resolve(false);
-						JobStatsTools.get(jobId)
+						JobStatsTools.getJobStatsData(jobId)
 							.then(function(jobstats) {
 								var duration = jobstats != null ? jobstats.finished - jobstats.requestReceived : null;
 								log.info(LogFieldUtil.addJobEvent({success:true, reason:'Success', duration:duration, exitCode:jobResult.exitCode}, JobEventType.FINISHED));

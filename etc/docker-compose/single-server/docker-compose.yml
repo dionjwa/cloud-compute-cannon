@@ -9,7 +9,7 @@ volumes:
 services:
 
   ccc:
-    image: "dionjwa/cloud-compute-cannon:0.3.0"
+    image: "dionjwa/cloud-compute-cannon:0.3.1-alpha-gpu-004"
     # image: "ccc:latest"
     ports:
       - "9000:9000"
@@ -26,6 +26,7 @@ services:
       - FLUENT_HOST=fluentd
       - FLUENT_PORT=24225
       - LOG_LEVEL=debug
+      - KIBANA_URL=http://localhost:5601
       - WORKER_STATUS_CHECK_INTERVAL_SECONDS=20
 
   redis:

@@ -176,7 +176,7 @@ class JobStateTools
 
 	public static function getFinishedStatus(jobId :JobId) :Promise<JobFinishedStatus>
 	{
-		return JobStatsTools.get(jobId)
+		return JobStatsTools.getJobStatsData(jobId)
 			.then(function(jobStats) {
 				return jobStats.statusFinished;
 			});
@@ -253,12 +253,17 @@ class JobStateTools
 	static function cancelAllJobsInternal(time :Float) :Promise<Bool> {}
 	public static function cancelAllJobs() :Promise<Bool>
 	{
-		var queue = new js.npm.bull.Bull.Queue(BullQueueNames.JobQueue, {redis:{port:REDIS_CLIENT.connection_options.port, host:REDIS_CLIENT.connection_options.host}});
-		return queue.empty().promhx()
-			.then(function(status) {
-				queue.close();
-				return true;
-			})
+		return Promise.whenAll(
+			[BullQueueNames.JobQueue, BullQueueNames.JobQueueGpu]
+				.map(function(jobQueueName) {
+					var queue = new js.npm.bull.Bull.Queue(jobQueueName, {redis:{port:REDIS_CLIENT.connection_options.port, host:REDIS_CLIENT.connection_options.host}});
+					return queue.empty().promhx()
+						.then(function(status) {
+							queue.close();
+							return true;
+						});
+				})
+			)
 			.pipe(function(_) {
 				return cancelAllJobsInternal(time());
 			});

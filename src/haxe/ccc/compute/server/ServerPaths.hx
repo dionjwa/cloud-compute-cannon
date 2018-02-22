@@ -35,7 +35,6 @@ class ServerPaths
 		}
 
 		var cors = Node.require('cors')();
-		// app.options('*', cors);
 		app.use(cors);
 
 		app.use(cast js.npm.bodyparser.BodyParser.json({limit: '250mb'}));
@@ -99,6 +98,84 @@ class ServerPaths
 
 		app.get('/test', function(req, res) {
 			test(req, res);
+		});
+
+		app.get('/test/cpu/:count/:duration', function(req, res) {
+			// trace(req.params);
+			var count = Std.parseInt(req.params.count);
+			var duration = Std.parseInt(req.params.duration);
+
+			for (i in 0...count) {
+				var job: BasicBatchProcessRequest = {
+					inputs: [],
+					image: DOCKER_IMAGE_DEFAULT,
+					parameters: {
+						maxDuration: duration + 10,
+						cpus: 1
+					},
+					cmd: ["sleep", '${duration}'],
+					meta: {
+						name: 'waittestjob'
+					},
+					appendStdOut: true,
+					appendStdErr: true,
+				}
+
+				ServiceBatchComputeTools.runComputeJobRequest(injector, job);
+			}
+
+			res.json(cast {success:true});
+		});
+
+		app.get('/test/gpu/:count/:duration', function(req, res) {
+			trace(req.params);
+			var count = Std.parseInt(req.params.count);
+			var duration = Std.parseInt(req.params.duration);
+
+			for (i in 0...count) {
+				var job: BasicBatchProcessRequest = {
+					inputs: [],
+					image: DOCKER_IMAGE_DEFAULT,
+					parameters: {
+						maxDuration: duration + 10,
+						gpu: true
+					},
+					cmd: ["sleep", '${duration}'],
+					meta: {
+						name: 'waittestjob'
+					},
+					appendStdOut: true,
+					appendStdErr: true,
+				}
+
+				ServiceBatchComputeTools.runComputeJobRequest(injector, job);
+			}
+
+			res.json(cast {success:true});
+		});
+
+		app.get('/test/gpu', function(req, res :Response) {
+
+			var request: BasicBatchProcessRequest = {
+				parameters: {
+					gpu: true,
+					maxDuration: 1000
+				},
+				image: 'nvidia/cuda',
+				cmd: ["nvidia-smi"],
+				appendStdOut: true,
+				appendStdErr: true,
+				wait: true,
+				turbo: true,
+			};
+			ClientJSTools.postJob('localhost:${ServerConfig.PORT}', request)
+				.then(function(job) {
+					traceYellow('$job');
+					res.json(job);
+				})
+				.catchError(function(err :Dynamic) {
+					res.status(500).json(err);
+				});
 		});
 
 		/**

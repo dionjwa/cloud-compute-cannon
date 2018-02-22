@@ -17,12 +17,40 @@ class LambdaScalingLocal
 
 	public function new() {super();}
 
-	override function setDesiredCapacity(desiredWorkerCount :Int) :Promise<String>
+	override function setDesiredCapacity(type :AsgType, desiredWorkerCount :Int) :Promise<String>
 	{
 		return ScalingCommands.setDesired(desiredWorkerCount);
 	}
 
-	override function getInstanceIds() :Promise<Array<String>>
+	// override public function scaleUp(type :AsgType) :Promise<Bool>
+	// {
+	// 	return super.scaleUp(type)
+	// 		.pipe(function(result) {
+	// 			return preChecks()
+	// 				.pipe(function(_) {
+	// 					return postChecks()
+	// 						.then(function(_) {
+	// 							return result;
+	// 						});
+	// 				});
+	// 		});
+	// }
+
+	override public function scaleDown(type :AsgType) :Promise<Bool>
+	{
+		return super.scaleDown(type)
+			.pipe(function(result) {
+				return preChecks()
+					.pipe(function(_) {
+						return postChecks()
+							.then(function(_) {
+								return result;
+							});
+					});
+			});
+	}
+
+	override function getInstanceIds(type :AsgType) :Promise<Array<String>>
 	{
 		return ScalingCommands.getAllDockerWorkerIds();
 	}
@@ -32,9 +60,9 @@ class LambdaScalingLocal
 		return Promise.promise(true);
 	}
 
-	override public function removeIdleWorkers(maxWorkersToRemove :Int) :Promise<Array<String>>
+	override public function removeIdleWorkers(type :AsgType, maxWorkersToRemove :Int) :Promise<Array<String>>
 	{
-		return getInstancesReadyForTermination()
+		return getInstancesReadyForTermination(type)
 			.pipe(function(workerIds) {
 				var promises = [];
 				var workerIdsRemoved = [];
@@ -59,7 +87,7 @@ class LambdaScalingLocal
 			});
 	}
 
-	override function getMinMaxDesired() :Promise<MinMaxDesired>
+	override function getMinMaxDesired(type :AsgType) :Promise<MinMaxDesired>
 	{
 		return ScalingCommands.getState();
 	}
