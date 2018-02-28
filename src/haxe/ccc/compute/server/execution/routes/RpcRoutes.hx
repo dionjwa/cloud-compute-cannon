@@ -117,7 +117,7 @@ class RpcRoutes
 	}
 
 	@rpc({
-		alias: 'jobv2',
+		alias: 'job',
 		doc: 'Commands to query jobs, e.g. status, outputs.',
 		args: {
 			'command': {'doc':'Command to run in the docker container [remove | kill | result | status | exitcode | stats | definition | time]'},
@@ -128,96 +128,11 @@ class RpcRoutes
 	public function doJobCommand_v2(command :JobCLICommand, jobId :JobId) :Promise<Dynamic>
 	{
 #if ((nodejs && !macro) && !excludeccc)
-		return JobCommands.doJobCommand(_injector, jobId, command);
-#else
-		return Promise.promise(null);
-#end
-	}
-
-@rpc({
-		alias: 'job',
-		doc: 'Commands to query jobs, e.g. status, outputs.',
-		args: {
-			'command': {'doc':'Command to run in the docker container [remove | kill | result | status | exitcode | stats | definition | time]'},
-			'jobId': {'doc': 'Job Id(s)'},
-			'json': {'doc': 'Output is JSON instead of human readable [true]'},
-		},
-		docCustom:'   With no jobId arguments, all jobs are returned.\n   commands:\n      remove\n      kill\n      result\n      status\t\torder of job status: [pending,copying_inputs,copying_image,container_running,copying_outputs,copying_logs,finalizing,finished]\n      exitcode\n      stats\n      definition\n      time'
-	})
-	public function doJobCommand(command :JobCLICommand, jobId :Array<JobId>, ?json :Bool = true) :Promise<TypedDynamicObject<JobId,Dynamic>>
-	{
-#if ((nodejs && !macro) && !excludeccc)
 		if (command == null) {
-			return PromiseTools.error('Missing command.');
+			var allCommands = util.AbstractEnumTools.getValues(ccc.compute.shared.ServerDefinitions.JobCLICommand);
+			return Promise.promise('Usage: <host>/v1/job/<command>/<jobId>     commands: ${allCommands}');
 		}
-		return __doJobCommandInternal(command, jobId, json);
-#else
-		return Promise.promise(null);
-#end
-	}
-
-	function __doJobCommandInternal(command :JobCLICommand, jobId :Array<JobId>, ?json :Bool = false) :Promise<TypedDynamicObject<JobId,Dynamic>>
-	{
-#if ((nodejs && !macro) && !excludeccc)
-		switch(command) {
-			case Remove,RemoveComplete,Kill,Status,Result,ExitCode,Definition,JobStats,Time:
-			default:
-				return Promise.promise(cast {error:'Unrecognized job subcommand=\'$command\' [remove | kill | result | status | exitcode | stats | definition | time]'});
-		}
-
-		var jobIds = jobId;//Better name
-
-		function getResultForJob(job) :Promise<Dynamic> {
-			return switch(command) {
-				case Remove:
-					JobCommands.removeJob(_injector, job);
-				case RemoveComplete:
-					JobCommands.deleteJobFiles(_injector, job)
-						.pipe(function(_) {
-							return JobCommands.removeJob(_injector, job);
-						});
-				case Kill:
-					JobCommands.killJob(_injector, job);
-				case Status:
-					JobCommands.getStatusv1(_injector, job);
-				case Result:
-					JobCommands.getJobResults(_injector, job);
-				case ExitCode:
-					JobCommands.getExitCode(_injector, job);
-				case JobStats:
-					JobCommands.getJobStats(_injector, job)
-						.then(function(stats) {
-							return stats != null ? stats.toJson() : null;
-						});
-				case Time:
-					JobCommands.getJobStats(_injector, job)
-						.then(function(stats) {
-							if (stats != null) {
-								return stats != null ? stats.toJson() : null;
-								var enqueueTime = stats.enqueueTime;
-								var finishTime = stats.finishTime;
-								var result = {
-									start: stats.enqueueTime,
-									duration: stats.isFinished() ? stats.finishTime - stats.enqueueTime : null
-								}
-								return result;
-							} else {
-								return null;
-							}
-						});
-				case Definition:
-					JobCommands.getJobDefinition(_injector, job);
-			}
-		}
-
-		return Promise.whenAll(jobIds.map(getResultForJob))
-			.then(function(results :Array<Dynamic>) {
-				var result :TypedDynamicObject<JobId,Dynamic> = {};
-				for(i in 0...jobIds.length) {
-					Reflect.setField(result, jobIds[i], results[i]);
-				}
-				return result;
-			});
+		return JobCommands.doJobCommand(_injector, jobId, command);
 #else
 		return Promise.promise(null);
 #end
