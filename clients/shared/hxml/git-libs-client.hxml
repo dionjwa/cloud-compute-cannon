@@ -6,5 +6,5 @@
 -lib janicek-core-haxe:git:https://github.com/rjanicek/janicek-core-haxe.git#6630d81
 -cp .haxelib/janicek-core-haxe/git/src
 
--lib hxnodelibs:git:https://github.com/dionjwa/hxnodelibs.git#4934de5
+-lib hxnodelibs:git:https://github.com/dionjwa/hxnodelibs.git#2ffbbff
 # -cp /Users/dion/Documents/git/hxnodelibs

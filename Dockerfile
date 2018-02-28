@@ -11,30 +11,43 @@
 FROM dionjwa/haxe-watch:v0.10.0 as builder-metaframe-builder
 
 # Package the npm dependencies and package with browserify into a single file (libs.js)
-WORKDIR /app/clients/metaframe
 COPY ./clients/metaframe/package.json /app/clients/metaframe/package.json
+WORKDIR /app/clients/metaframe
 # This needs the global flag so that haxe-modular can be reached
 # when in a parent directory at the haxe build step (last)
 RUN npm install
 RUN npm install -g haxe-modular
 
-# Add web media files
-COPY ./clients/metaframe/web /app/build/clients/metaframe
-
-COPY ./clients/metaframe/src/libs.js /app/clients/metaframe/src/libs.js
-RUN npm run libs
-
-COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
 COPY ./clients/shared/hxml /app/clients/shared/hxml
-
+COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
 WORKDIR /app
 RUN haxelib newrepo
 RUN haxelib --always install ./clients/metaframe/build.hxml
 
-COPY ./clients/metaframe/src /app/clients/metaframe/src
+# Add web media files
 COPY ./clients/shared/src /app/clients/shared/src
-RUN haxe clients/metaframe/build.hxml
+COPY ./clients/metaframe/web /app/clients/metaframe/web
+COPY ./clients/metaframe/src /app/clients/metaframe/src
+COPY ./bin/build-metaframe /app/bin/build-metaframe
 
+# Add web media files
+# COPY ./clients/metaframe/web /app/build/clients/metaframe
+
+# COPY ./clients/metaframe/src/libs.js /app/clients/metaframe/src/libs.js
+# RUN npm run libs
+
+# COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
+# COPY ./clients/shared/hxml /app/clients/shared/hxml
+
+# WORKDIR /app
+# RUN haxelib newrepo
+# RUN haxelib --always install ./clients/metaframe/build.hxml
+
+# COPY ./clients/metaframe/src /app/clients/metaframe/src
+# COPY ./clients/shared/src /app/clients/shared/src
+# RUN haxe clients/metaframe/build.hxml
+
+RUN /app/bin/build-metaframe
 
 ################################################
 # Build server npm libraries

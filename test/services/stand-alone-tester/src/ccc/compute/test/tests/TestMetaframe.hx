@@ -12,6 +12,7 @@ class TestMetaframe
 	public function testMetapage() :Promise<Bool>
 	{
 		var url = 'http://${ServerTesterConfig.CCC}/metaframe/';
+		trace('url=${url}');
 		return RequestPromises.get(url)
 			.then(function(result) {
 				return true;

@@ -5,6 +5,7 @@
   "scripts": {
     "preview-github-docs": "docker run -it --rm -p 8081:8081 -v ${PWD}:/data -v ~/.grip:/.grip mbentley/grip --context=dionjwa/cloud-compute-cannon README.md 0.0.0.0:8081",
     "build": "./bin/compile",
+    "build:metaframe": "./bin/build-metaframe",
     "clean": "./bin/clean",
     "reload:metapage": "docker-compose -f docker-compose.tools.yml run metapage-livereload",
     "test": "./bin/install && ./bin/test",
