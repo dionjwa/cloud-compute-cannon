@@ -1,6 +1,6 @@
 {
   "name": "cloud-compute-cannon",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "author": "Dion Amago Whitehead <dion@transition9.com>",
   "scripts": {
     "preview-github-docs": "docker run -it --rm -p 8081:8081 -v ${PWD}:/data -v ~/.grip:/.grip mbentley/grip --context=dionjwa/cloud-compute-cannon README.md 0.0.0.0:8081",

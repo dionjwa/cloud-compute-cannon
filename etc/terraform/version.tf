@@ -1,3 +1,3 @@
 variable "server_version" {
-  default = "0.3.2"
+  default = "0.3.3"
 }
