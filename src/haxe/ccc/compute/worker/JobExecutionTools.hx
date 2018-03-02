@@ -37,6 +37,12 @@ class JobExecutionTools
 			var appendStdOut = job.appendStdOut == true;
 			var appendStdErr = job.appendStdErr == true;
 
+			//Strip auth credentials from job definition
+			var jobDefLogSafe :DockerBatchComputeJob = Json.parse(Json.stringify(job));
+			if (jobDefLogSafe.image != null && jobDefLogSafe.image.pull_options != null) {
+				jobDefLogSafe.image.pull_options.authconfig = null;
+			}
+
 			Log.debug({jobid:jobId, exitCode:batchJobResult.exitCode});
 			var jobResultsStorage = jobStorage.appendToRootPath(job.resultDir());
 			var jobResult :JobResult = null;
@@ -48,7 +54,7 @@ class JobExecutionTools
 				})
 				.then(function(prettyJobStats) {
 					traceYellow('About to write jobResult inputsBaseUrl: ${externalBaseUrl + job.inputDir()}');
-					traceYellow(Json.stringify(job, null, '  '));
+					// traceYellow(Json.stringify(job, null, '  '));
 					jobResult = {
 						jobId: jobId,
 						status: finishedStatus,
@@ -61,7 +67,7 @@ class JobExecutionTools
 						inputs: job.inputs,
 						outputs: batchJobResult.outputFiles,
 						error: batchJobResult.error,
-						definition: job,
+						definition: jobDefLogSafe,
 						stats: prettyJobStats
 					};
 					log.trace(Json.stringify(jobResult, null, '  '));
