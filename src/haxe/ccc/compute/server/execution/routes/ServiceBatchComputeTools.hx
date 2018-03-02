@@ -180,8 +180,13 @@ class ServiceBatchComputeTools
 					mountApiServer: job.mountApiServer
 				};
 
+				var dockerJobLog :DockerBatchComputeJob = Json.parse(Json.stringify(dockerJob));
+				if (dockerJobLog.image != null && dockerJobLog.image.pull_options != null) {
+					dockerJobLog.image.pull_options.authconfig = null;
+				}
+
 				Log.info({job_submission :dockerJob.id}.add(LogEventType.JobSubmitted));
-				Log.debug({job_submission :dockerJob});
+				Log.debug({job_submission :dockerJobLog});
 
 				if (dockerJob.command != null && untyped __typeof__(dockerJob.command) == 'string') {
 					throw 'command field must be an array, not a string';
