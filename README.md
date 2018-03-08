@@ -1,7 +1,10 @@
 # Docker Cloud Compute [![Build Status](https://travis-ci.org/dionjwa/docker-cloud-compute.svg?branch=master)](https://travis-ci.org/dionjwa/docker-cloud-compute)
 
+Docker Image: https://hub.docker.com/r/dionjwa/docker-cloud-compute
+
 ## TOC:
- - [INSTALL](docs/INSTALL.md)
+ - [AWS INSTALL](etc/terraform/README.md)
+ - [LOCAL INSTALL](docs/INSTALL.md)
  - [API](docs/API.md)
  - [ARCHITECTURE](docs/ARCHITECTURE.md)
  - [DEVELOPERS](docs/DEVELOPERS.md)

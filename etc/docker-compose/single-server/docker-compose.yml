@@ -9,8 +9,7 @@ volumes:
 services:
 
   ccc:
-    image: "dionjwa/docker-cloud-compute:0.3.3"
-    # image: "ccc:latest"
+    image: "dionjwa/docker-cloud-compute:0.4.0"
     ports:
       - "9000:9000"
     links:
