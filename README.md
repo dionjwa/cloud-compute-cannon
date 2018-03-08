@@ -37,9 +37,7 @@ Get the URL to the API above (either http://localhost:9000 or it will be given b
 ```
 	curl -X POST \
 	  http://localhost:9000/v1 \
-	  -H 'Cache-Control: no-cache' \
 	  -H 'Content-Type: application/json' \
-	  -H 'Postman-Token: c6f25ee8-adc8-5c08-8384-c24f641eef73' \
 	  -d '{
 	  "jsonrpc": "2.0",
 	  "id": "_",
