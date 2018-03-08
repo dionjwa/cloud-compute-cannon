@@ -1,6 +1,6 @@
 {
   "jsonrpc":"2.0",
-  "method":"cloudcomputecannon.run",
+  "method":"dockercloudcompute.run",
   "params":{
     "image":"ubuntu:14.10",
     "cmd": ["cat", "/inputs/actung"],

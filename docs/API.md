@@ -1,10 +1,10 @@
-# Cloud Compute Cannon API
+# Docker Cloud Compute API
 
 All routes are prefixed by the `<domain>:<port>/api/rpc`
 # API and app usage
 
 The API docs live in Postman:
 
-https://documenter.getpostman.com/view/2821248/cloudcomputecannon-api/77eARSx
+https://documenter.getpostman.com/view/2821248/dockercloudcompute-api/77eARSx
 
-Also stored locally at `docs/CloudComputeCannon%20API.postman_collection.json`.
+Also stored locally at `docs/DockerCloudCompute%20API.postman_collection.json`.

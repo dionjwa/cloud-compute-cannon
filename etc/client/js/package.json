@@ -1,14 +1,14 @@
 {
-  "name": "cloud-compute-cannon-client",
+  "name": "docker-cloud-compute-client",
   "version": "0.3.0",
   "author": "Dion Amago Whitehead <dion.amago@autodesk.org>",
   "main": "lib.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Autodesk/cloud-compute-cannon.git"
+    "url": "https://github.com/Autodesk/docker-cloud-compute.git"
   },
   "bugs": {
-    "url": "https://github.com/Autodesk/cloud-compute-cannon/issues"
+    "url": "https://github.com/Autodesk/docker-cloud-compute/issues"
   },
   "dependencies": {
     "base64-stream": "^0.1.3",

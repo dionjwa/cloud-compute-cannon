@@ -10,7 +10,7 @@ variable "s3_access_key" {}
 variable "s3_secret_key" {}
 variable "s3_region" {}
 variable "s3_bucket" {
-  default = "cloud-compute-cannon-data"
+  default = "docker-cloud-compute-data"
 }
 
 

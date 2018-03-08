@@ -11,4 +11,4 @@ etc/hxml/base-nodejs.hxml
 
 -main ccc.compute.server.Server
 
--js build/server/cloud-compute-cannon-server.js
+-js build/server/docker-cloud-compute-server.js

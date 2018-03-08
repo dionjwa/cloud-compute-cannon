@@ -14,7 +14,7 @@ services:
     expose:
       - 9000
     # Extra args for debugging: --inspect, --debug-brk
-    command: ["nodemon", "-L", "-w", "server", "server/cloud-compute-cannon-server.js"]
+    command: ["nodemon", "-L", "-w", "server", "server/docker-cloud-compute-server.js"]
     links:
       - redis
       - fluentd
@@ -46,8 +46,8 @@ services:
     image: dionjwa/haxe-watch:v0.7.3
     working_dir: /app
     # Switch these when developing locally
-    command: ["nodemon", "-L", "--watch", "build/test", "build/test/cloud-compute-cannon-tester.js"]
-    # command: ["node", "build/test/cloud-compute-cannon-tester.js"]
+    command: ["nodemon", "-L", "--watch", "build/test", "build/test/docker-cloud-compute-tester.js"]
+    # command: ["node", "build/test/docker-cloud-compute-tester.js"]
     environment:
       - CCC=ccc.local
       - CCC_SCALING=ccc-scaling-server:4015
@@ -106,7 +106,7 @@ services:
   ccc-scaling-server:
     cpu_shares: 512
     image: dionjwa/haxe-watch:v0.7.3
-    command: ["nodemon", "local-scaling-server/cloud-compute-cannon-scaling-server.js"]
+    command: ["nodemon", "local-scaling-server/docker-cloud-compute-scaling-server.js"]
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

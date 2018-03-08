@@ -1,4 +1,4 @@
-.cloudcomputecannon
+.dockercloudcompute
 .git
 .haxelib
 bin
@@ -10,7 +10,7 @@ server
 src
 test
 tmp
-cloudcomputecannon.sublime-project
+dockercloudcompute.sublime-project
 common.yml
 docker-compose.override.yml
 docker-compose.yml

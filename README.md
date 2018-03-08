@@ -1,22 +1,30 @@
-# Cloud Compute Cannon [![Build Status](https://travis-ci.org/dionjwa/cloud-compute-cannon.svg?branch=master)](https://travis-ci.org/dionjwa/cloud-compute-cannon)
+# Docker Cloud Compute [![Build Status](https://travis-ci.org/dionjwa/docker-cloud-compute.svg?branch=master)](https://travis-ci.org/dionjwa/docker-cloud-compute)
+
+Docker Image: https://hub.docker.com/r/dionjwa/docker-cloud-compute
 
 ## TOC:
- - [INSTALL](docs/INSTALL.md)
+ - [AWS INSTALL](etc/terraform/README.md)
+ - [LOCAL INSTALL](docs/INSTALL.md)
  - [API](docs/API.md)
  - [ARCHITECTURE](docs/ARCHITECTURE.md)
  - [DEVELOPERS](docs/DEVELOPERS.md)
 
 ## Introduction
 
-Cloud Compute Cannon (CCC) aims to provide a consistent API and client libraries to run computation jobs, such as machine learning, GPU computation. It consists of a number of servers that process `docker` compute jobs.
+Docker Cloud Compute (DCC) aims to provide one thing well: a simple API to run docker compute jobs (anywhere).
 
-It can run locally on your machine, or just as easily in the cloud (currently only AWS but working to extend), where it scales to as many compute machines as needed. It aims to be as *simple* and *reliable* to install in any location.
+Features:
 
-You interact via a simple REST API. Client libraries to make interaction easier (e.g. submit jobs in Python) are in progress.
+- It runs as a docker container, locally on your own machine, or on a scalable pool of workers.
+- It can set up GPU-enabled workers (currently AWS only), for example creating ML workflows.
+- [Terraform](https://www.terraform.io/intro/index.html) configs allowing you to create (within minutes) your own scalable set of workers in the cloud, and to tear them down when finished.
+- Compute jobs results are saved in remote storage (e.g. S3) independent of workers.
+- Highly customizable.
+- Simple REST API (with Postman examples)
 
 ## Example
 
-Install the CCC stack to the cloud, and run some computation jobs, get the results, then destroy the stack.
+Install the DCC stack to the cloud, and run some computation jobs, get the results, then destroy the stack.
 
 ### 1 Install a stack locally
 

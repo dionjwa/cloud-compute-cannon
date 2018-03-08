@@ -10,4 +10,4 @@ etc/hxml/base-nodejs.hxml
 
 -main ccc.compute.test.ServerTester
 
--js build/test/cloud-compute-cannon-tester.js
+-js build/test/docker-cloud-compute-tester.js

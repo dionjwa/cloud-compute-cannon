@@ -10,4 +10,4 @@ etc/hxml/base-nodejs.hxml
 
 -main ccc.scaling.ScalingServer
 
--js build/local-scaling-server/cloud-compute-cannon-scaling-server.js
+-js build/local-scaling-server/docker-cloud-compute-scaling-server.js

@@ -1,9 +1,9 @@
 windows:
   - name: work
-    root: ~/Documents/git/cloud-compute-cannon
+    root: ~/Documents/git/docker-cloud-compute
     layout: main-vertical
     panes:
       - git status && git branch
-      - subl cloudcannon.sublime-project
+      - subl dcc.sublime-project
       - docker-compose up
       - cd ../metapage/docs && docker-compose up

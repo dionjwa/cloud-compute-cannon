@@ -21,7 +21,7 @@ class Constants
 
 	/* General */
 	inline public static var BUILD_DIR_SERVER = 'build/server';
-	inline public static var APP_NAME = 'cloud-compute-cannon';
+	inline public static var APP_NAME = 'docker-cloud-compute';
 	public static var APP_SERVER_FILE = APP_NAME + '-server.js';
 	public static var APP_NAME_COMPACT = APP_NAME.replace('-', '');
 	public static var DOCKER_COMPOSE_SERVICE = 'ccc';

@@ -9,7 +9,7 @@ volumes:
 services:
 
   server:
-    image: quay.io/bionano/cloud-compute-cannon:dd574008
+    image: quay.io/bionano/docker-cloud-compute:dd574008
     cpu_shares: 1024
     ports:
       - "9090:9000"

@@ -562,7 +562,7 @@ class ClientCommands
 
 	@rpc({
 		alias:'server-upgrade',
-		doc:'Re-install the cloudcomputecannon server',
+		doc:'Re-install the dockercloudcompute server',
 		args:{
 			'config':{doc: '<Path to server config yaml file>', short:'c'},
 			'uploadonly':{doc: 'DEBUG/DEVELOPER: Only upload server files to remote server.'}
@@ -613,7 +613,7 @@ class ClientCommands
 
 	@rpc({
 		alias:'install',
-		doc:'Install the cloudcomputecannon server locally or on a remote provider',
+		doc:'Install the dockercloudcompute server locally or on a remote provider',
 		args:{
 			'config':{doc: '<Path to server config yaml file>', short:'c'},
 			'host':{doc: 'Provide an existing server. The host should be the ip address and include the --key and --username parameters, or it should be an entry in your ~/.ssh/config.'},
@@ -862,7 +862,7 @@ class ClientCommands
 
 	@rpc({
 		alias:'server-install-aws',
-		doc:'Install the cloudcomputecannon server on AWS (Amazon Web Services)',
+		doc:'Install the dockercloudcompute server on AWS (Amazon Web Services)',
 		args:{
 			'key':{doc: 'AWS account key', short:'k'},
 			'keyId':{doc: 'AWS account keyId', short:'i'}
@@ -1065,7 +1065,7 @@ class ClientCommands
 
 	@rpc({
 		alias:'test',
-		doc:'Test a simple job with a cloud-compute-cannon server'
+		doc:'Test a simple job with a docker-cloud-compute server'
 	})
 	public static function test() :Promise<CLIResult>
 	{

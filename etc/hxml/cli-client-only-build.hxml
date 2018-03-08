@@ -1,8 +1,8 @@
 etc/hxml/base-nodejs.hxml
 
 -resource package.json@package.json
--resource build/server/cloud-compute-cannon-server.js@cloud-compute-cannon-server.js
--resource build/server/cloud-compute-cannon-server.js.map@cloud-compute-cannon-server.js.map
+-resource build/server/docker-cloud-compute-server.js@docker-cloud-compute-server.js
+-resource build/server/docker-cloud-compute-server.js.map@docker-cloud-compute-server.js.map
 -resource etc/server/docker-compose.yml@docker-compose.yml
 
 -debug
@@ -11,6 +11,6 @@ etc/hxml/base-nodejs.hxml
 
 -main ccc.compute.client.cli.CliMain
 
--js build/cli/cloudcomputecannon.js
+-js build/cli/dockercloudcompute.js
 
--cmd echo "#!/usr/bin/env node" | cat - build/cli/cloudcomputecannon.js > /tmp/out && mv /tmp/out build/cli/cloudcomputecannon.js && chmod 755 build/cli/cloudcomputecannon.js
+-cmd echo "#!/usr/bin/env node" | cat - build/cli/dockercloudcompute.js > /tmp/out && mv /tmp/out build/cli/dockercloudcompute.js && chmod 755 build/cli/dockercloudcompute.js

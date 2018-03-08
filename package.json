@@ -1,16 +1,16 @@
 {
-  "name": "cloud-compute-cannon",
-  "version": "0.3.4",
+  "name": "docker-cloud-compute",
+  "version": "0.4.0",
   "author": "Dion Amago Whitehead <dion@transition9.com>",
   "scripts": {
-    "preview-github-docs": "docker run -it --rm -p 8081:8081 -v ${PWD}:/data -v ~/.grip:/.grip mbentley/grip --context=dionjwa/cloud-compute-cannon README.md 0.0.0.0:8081",
+    "preview-github-docs": "docker run -it --rm -p 8081:8081 -v ${PWD}:/data -v ~/.grip:/.grip mbentley/grip --context=dionjwa/docker-cloud-compute README.md 0.0.0.0:8081",
     "build": "./bin/compile",
     "build:metaframe": "./bin/build-metaframe",
     "clean": "./bin/clean",
     "reload:metapage": "docker-compose -f docker-compose.tools.yml run metapage-livereload",
     "test": "./bin/install && ./bin/test",
     "test-scaling": "./bin/install && ./bin/test-scaling",
-    "template.fluent.conf": "sed -e 's/host ::SERVER_HOSTNAME_PRIVATE::/host elasticsearch/' -e 's/::FLUENTD_WORKER_LOG_TAG_PREFIX::/docker.cloudcomputecannon.worker/' -e 's/::FLUENTD_NODEJS_BUNYAN_TAG_PREFIX::/docker.nodejs-bunyan/' etc/log/fluent.conf.template > etc/log/fluent.conf",
+    "template.fluent.conf": "sed -e 's/host ::SERVER_HOSTNAME_PRIVATE::/host elasticsearch/' -e 's/::FLUENTD_WORKER_LOG_TAG_PREFIX::/docker.dockercloudcompute.worker/' -e 's/::FLUENTD_NODEJS_BUNYAN_TAG_PREFIX::/docker.nodejs-bunyan/' etc/log/fluent.conf.template > etc/log/fluent.conf",
     "set-build:server": "rm -f build.hxml && ln -s etc/hxml/server-build.hxml build.hxml",
     "set-build:client-dashboard": "rm -f build.hxml && ln -s clients/dashboard/build-dev.hxml build.hxml",
     "set-build:client-metaframe": "rm -f build.hxml && ln -s clients/metaframe/build-dev.hxml build.hxml",
@@ -22,10 +22,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dionjwa/cloudcomputecannon.git"
+    "url": "https://github.com/dionjwa/docker-cloud-compute.git"
   },
   "bugs": {
-    "url": "https://github.com/dionjwa/cloudcomputecannon/issues"
+    "url": "https://github.com/dionjwa/docker-cloud-compute/issues"
   },
   "dependencies": {
     "aws-sdk": "^2.128.0",

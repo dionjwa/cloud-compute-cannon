@@ -4,7 +4,7 @@ var Promise = require('bluebird');
 
 var BNR_ENVIRONMENT = process.env['BNR_ENVIRONMENT'];
 var redisUrl = 'redis-ccc.' + BNR_ENVIRONMENT + '.bionano.bio';
-var AppTagValue = 'cloudcomputecannon';
+var AppTagValue = 'dockercloudcompute';
 
 var autoscaling = new AWS.AutoScaling();
 var ec2 = new AWS.EC2();
