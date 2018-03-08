@@ -11,4 +11,4 @@ RUN haxe build.hxml
 
 ENV PORT=4015
 EXPOSE 4015
-CMD nodemon build/cloud-compute-cannon-scaling-server.js
+CMD nodemon build/docker-cloud-compute-scaling-server.js

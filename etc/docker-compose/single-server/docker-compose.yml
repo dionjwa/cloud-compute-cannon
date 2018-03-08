@@ -9,7 +9,7 @@ volumes:
 services:
 
   ccc:
-    image: "dionjwa/cloud-compute-cannon:0.3.3"
+    image: "dionjwa/docker-cloud-compute:0.3.3"
     # image: "ccc:latest"
     ports:
       - "9000:9000"
@@ -39,7 +39,7 @@ services:
 
   fluentd:
     restart: always
-    image: dionjwa/cloud-compute-cannon-fluent:0.2.1
+    image: dionjwa/docker-cloud-compute-fluent:0.2.1
     restart: always
     links:
       - elasticsearch

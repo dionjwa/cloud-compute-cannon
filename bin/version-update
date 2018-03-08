@@ -17,7 +17,7 @@ VERSION_PACKAGE=$(cat package.json \
 
 # Update dependent files:
 sed -i '' "s/default = .*/default = \"$VERSION_PACKAGE\"/g" etc/terraform/version.tf
-sed -i '' "s/cloud-compute-cannon:.*/cloud-compute-cannon:$VERSION_PACKAGE\"/g" etc/docker-compose/single-server/docker-compose.yml
+sed -i '' "s/docker-cloud-compute:.*/docker-cloud-compute:$VERSION_PACKAGE\"/g" etc/docker-compose/single-server/docker-compose.yml
 
 git add package.json
 git add etc/terraform/version.tf

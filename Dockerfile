@@ -117,4 +117,4 @@ COPY --from=builder-metaframe-builder /app/build/clients/metaframe /app/clients/
 ENV PORT 9000
 EXPOSE 9000
 
-CMD forever server/cloud-compute-cannon-server.js
+CMD forever server/docker-cloud-compute-server.js

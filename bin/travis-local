@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-TRAVIS_BRANCH=master TRAVIS_PULL_REQUEST=true TRAVIS_REPO_SLUG=dionjwa/cloud-compute-cannon ./bin/travis
+TRAVIS_BRANCH=master TRAVIS_PULL_REQUEST=true TRAVIS_REPO_SLUG=dionjwa/docker-cloud-compute ./bin/travis

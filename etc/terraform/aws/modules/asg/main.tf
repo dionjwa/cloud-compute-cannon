@@ -86,7 +86,7 @@ docker run --detach \
  -e AWS_S3_REGION=${var.s3_region} \
  -e KIBANA_URL=${var.kibana_url} \
  -e GPU=${var.gpu} \
-  dionjwa/cloud-compute-cannon:${var.server_version}
+  dionjwa/docker-cloud-compute:${var.server_version}
 
 EOF
 

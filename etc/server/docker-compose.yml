@@ -8,7 +8,7 @@ services:
 
   ccc:
     restart: "always"
-    image: "dionjwa/cloud-compute-cannon:${VERSION}"
+    image: "dionjwa/docker-cloud-compute:${VERSION}"
     volumes:
       - ./:/app/config/
       - /var/run/docker.sock:/var/run/docker.sock

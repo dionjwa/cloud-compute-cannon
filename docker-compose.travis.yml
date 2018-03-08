@@ -7,14 +7,14 @@ volumes:
 services:
 
   serverworker:
-    image: "cloud-compute-cannon:${VERSION}"
+    image: "docker-cloud-compute:${VERSION}"
     expose:
       - 9000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       #This volume is needed for running computes locally
       - ccc-local-storage:/app/ccc-local-storage
-    command: ["node", "server/cloud-compute-cannon-server.js"]
+    command: ["node", "server/docker-cloud-compute-server.js"]
     links:
       - redis1
     environment:
@@ -30,9 +30,9 @@ services:
 
   # Run the functional and scaling tests in a separate container
   ccc.tests:
-    image: "cloud-compute-cannon:${VERSION}"
+    image: "docker-cloud-compute:${VERSION}"
     working_dir: /app
-    command: ["node",  "test/cloud-compute-cannon-tester.js"]
+    command: ["node",  "test/docker-cloud-compute-tester.js"]
     environment:
       - CCC=ccc.local
       - CCC_SCALING=ccc-scaling-server:4015
@@ -57,8 +57,8 @@ services:
   # workers based on the desired capacity.
   # Also used to test worker failure
   ccc-scaling-server:
-    image: "cloud-compute-cannon:${VERSION}"
-    command: ["node", "local-scaling-server/cloud-compute-cannon-scaling-server.js"]
+    image: "docker-cloud-compute:${VERSION}"
+    command: ["node", "local-scaling-server/docker-cloud-compute-scaling-server.js"]
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

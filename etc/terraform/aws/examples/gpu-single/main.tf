@@ -6,7 +6,7 @@ variable "server_version" {}
 
 #CCC stack in AWS
 module "stack_cheapest_scalable" {
-  # source      = "git::https://github.com/dionjwa/cloud-compute-cannon//etc/terraform/aws/modules/stack_cheapest_scalable?ref=master"
+  # source      = "git::https://github.com/dionjwa/docker-cloud-compute//etc/terraform/aws/modules/stack_cheapest_scalable?ref=master"
   source      = "../../modules/stack_cheapest_scalable"
   access_key  = "${var.access_key}"
   secret_key  = "${var.secret_key}"

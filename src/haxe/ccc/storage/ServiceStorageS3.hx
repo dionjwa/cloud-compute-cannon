@@ -80,7 +80,7 @@ using StringTools;
 
 class ServiceStorageS3 extends ServiceStorageBase
 {
-	var _containerName :String = "cloud-compute-cannon-storage"; // we always need a bucket
+	var _containerName :String = "docker-cloud-compute-storage"; // we always need a bucket
 	var _httpAccessUrl :String;
 	var _S3 :AWSS3;
 	var _initialized :Promise<Bool>;

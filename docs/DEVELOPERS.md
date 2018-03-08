@@ -1,4 +1,4 @@
-# Developing cloud-compute-cannon
+# Developing docker-cloud-compute
 
 - [ARCHITECTURE](ARCHITECTURE.md)
 - [API](API.md)
@@ -10,8 +10,8 @@ Run these once:
 
 - Install [docker](https://docs.docker.com/engine/installation/)
 - OPTIONAL: Install [node.js/npm](https://nodejs.org/en/download/)
-- `git clone git@github.com:dionjwa/cloud-compute-cannon.git` (or your fork)
-- `cd cloud-compute-cannon`
+- `git clone git@github.com:dionjwa/docker-cloud-compute.git` (or your fork)
+- `cd docker-cloud-compute`
 - `./bin/install`
 
 Then you can start the stack with:
@@ -28,7 +28,7 @@ Then, if all code is compiled, the test running server will restart the tests.
 
 Build artifacts are created in the `./build/` directory:
 
-	./build/server/cloud-compute-cannon-server.js
+	./build/server/docker-cloud-compute-server.js
 
 	./build/lambda-autoscaling/index.js
 	./build/lambda-autoscaling/package.json
@@ -38,8 +38,8 @@ Build artifacts are created in the `./build/` directory:
 
 Test artifacts are also there:
 
-	./build/local-scaling-server/cloud-compute-cannon-scaling-server.js
-	./build/test/cloud-compute-cannon-tester.js
+	./build/local-scaling-server/docker-cloud-compute-scaling-server.js
+	./build/test/docker-cloud-compute-tester.js
 
 ## Tests
 

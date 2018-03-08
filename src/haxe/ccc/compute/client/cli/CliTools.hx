@@ -54,7 +54,7 @@ class CliTools
 	// }
 
 	/**
-	 * Returns the path of the directory containing a .cloudcomputecannon
+	 * Returns the path of the directory containing a .dockercloudcompute
 	 * child folder that contains a server.json file.
 	 * Parent directories will be searched until a file is found, or null.
 	 * @param  ?path :String       [description]
@@ -83,7 +83,7 @@ class CliTools
 	}
 
 	/**
-	 * This path (and parents) will be searched for a .cloudcomputecannon child.
+	 * This path (and parents) will be searched for a .dockercloudcompute child.
 	 * @param  ?path :String       [description]
 	 * @return       [description]
 	 */
@@ -162,7 +162,7 @@ class CliTools
 	}
 
 	/**
-	 * Gets the address of a running cloudcomputecannon server.
+	 * Gets the address of a running dockercloudcompute server.
 	 * @param  config :ProviderConfig [description]
 	 * @return        [description]
 	 */

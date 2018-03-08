@@ -17,13 +17,13 @@ PACKAGE_VERSION=$(cat package.json \
   | sed 's/[",]//g' \
   | tr -d '[[:space:]]')
 
-REPO_NAME="cloud-compute-cannon:$GIT_TAG"
+REPO_NAME="docker-cloud-compute:$GIT_TAG"
 
 # echo $GIT_TAG > ./VERSION
 docker build -t $REPO_NAME .
 
 #Also create a tag with the npm version
-docker tag $REPO_NAME "cloud-compute-cannon:$PACKAGE_VERSION"
-docker tag $REPO_NAME "cloud-compute-cannon:latest"
+docker tag $REPO_NAME "docker-cloud-compute:$PACKAGE_VERSION"
+docker tag $REPO_NAME "docker-cloud-compute:latest"
 
-echo "Built cloud-compute-cannon:$PACKAGE_VERSION docker image"
+echo "Built docker-cloud-compute:$PACKAGE_VERSION docker image"

@@ -16,7 +16,7 @@ Start by filtering only genetic constructor logs (key:value):
 
 ## Log keys and values
 
-Cloud-compute-cannon log query keys and values:
+docker-cloud-compute log query keys and values:
 
 | Key | Values | Comment|
 |---|---|---|

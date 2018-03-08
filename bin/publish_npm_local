@@ -8,4 +8,4 @@ PACKAGE_VERSION=$(cat package.json \
   | sed 's/[",]//g' \
   | tr -d '[[:space:]]')
 npm pack
-npm install -g cloud-compute-cannon-$PACKAGE_VERSION.tgz
+npm install -g docker-cloud-compute-$PACKAGE_VERSION.tgz

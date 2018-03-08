@@ -1,6 +1,6 @@
 # Architecture and application design
 
-![CCC Architecture](images/architecture1.png)
+![Docker Cloud Compute Architecture](images/architecture1.png)
 
 
 Walkthrough:
@@ -11,7 +11,7 @@ In the background, a lambda function [[6]](#6-scaling-lambda) monitor the worker
 
 ## 1. API Gateway
 
-The CCC stack does not have any access control itself, so it is the responsibility of the person deploying CCC to control access.
+The DCC stack does not have any access control itself, so it is the responsibility of the person deploying DCC to control access.
 
 ## 2. API request servers
 
@@ -21,7 +21,7 @@ However, if the env var `DISABLE_WORKER=true` is passed to the server process, t
 
 This would mean you need auto-scaling groups: one for the servers, and one for the workers:
 
-![CCC Architecture](images/architecture2.png)
+![Docker Cloud Compute Architecture](images/architecture2.png)
 
 ### Persisted and fast jobs
 

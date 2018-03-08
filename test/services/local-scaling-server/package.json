@@ -1,10 +1,10 @@
 {
-  "name": "cloud-compute-cannon-scaling-server",
+  "name": "docker-cloud-compute-scaling-server",
   "version": "0.0.1",
-  "author": "Dion Amago Whitehead <dion.amago@autodesk.org>",
+  "author": "Dion Amago Whitehead <dion@transition9.org>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Autodesk/cloudcomputecannon.git"
+    "url": "https://github.com/dionjwa/docker-cloud-compute"
   },
   "scripts": {
     "watch": "chokidar --verbose --ignore '**/node_modules/**' 'src/**/*.hx' -c 'haxe build.hxml'"

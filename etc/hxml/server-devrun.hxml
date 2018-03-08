@@ -6,4 +6,4 @@ etc/hxml/server-build.hxml
 
 # -cmd rsync -a src/web build/
 # 
-# -cmd node build/server/cloud-compute-cannon-server.js
+# -cmd node build/server/docker-cloud-compute-server.js

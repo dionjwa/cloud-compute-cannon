@@ -3,7 +3,7 @@
 	"info": {
 		"name": "CloudComputeCannon API",
 		"_postman_id": "dc1f6ae0-4b53-56d7-74cc-98944efff2b2",
-		"description": "A collection of API calls showing common usage of the cloud-compute-cannon API.",
+		"description": "A collection of API calls showing common usage of the docker-cloud-compute API.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
 	},
 	"item": [
