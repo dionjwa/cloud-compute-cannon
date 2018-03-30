@@ -3,22 +3,23 @@
 # docker.io/dionjwa/docker-cloud-compute:$NPM_VERSION
 
 set -e
-# This assumes there is an image to publish
-if [ ! -z "$DOCKER_USERNAME" ] && [ ! -z "$DOCKER_PASSWORD" ]; then
-	#Make sure we are logged in
-	docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+# This assumes there is an image to publish, and we're logged in
 
-	NPM_VERSION=$(cat package.json \
-	  | grep version \
-	  | head -1 \
-	  | awk -F: '{ print $2 }' \
-	  | sed 's/[",]//g' \
-	  | tr -d '[[:space:]]
-	  ')
-	DOCKER_IMAGE_NAME="dionjwa/docker-cloud-compute:$NPM_VERSION"
-	echo "$DOCKER_IMAGE_NAME"
-	docker tag docker-cloud-compute:$NPM_VERSION $DOCKER_IMAGE_NAME
-	docker push $DOCKER_IMAGE_NAME
+if [ -z ${DOCKER_REPO+x} ]; then
+	echo "DOCKER_REPO is unset"
+	exit 1
 else
-	echo "DOCKER_USERNAME and DOCKER_PASSWORD are not set, skipping docker image push to docker.io";
+	echo "DOCKER_REPO is set to '$DOCKER_REPO'"
 fi
+
+NPM_VERSION=$(cat package.json \
+  | grep version \
+  | head -1 \
+  | awk -F: '{ print $2 }' \
+  | sed 's/[",]//g' \
+  | tr -d '[[:space:]]
+  ')
+DOCKER_IMAGE_NAME="$DOCKER_REPO:$NPM_VERSION"
+echo "$DOCKER_IMAGE_NAME"
+docker tag docker-cloud-compute:$NPM_VERSION $DOCKER_IMAGE_NAME
+docker push $DOCKER_IMAGE_NAME

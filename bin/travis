@@ -42,7 +42,14 @@ fi
 if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/docker-cloud-compute" ] && [ "v$NPM_VERSION" == "$TRAVIS_TAG" ];
 	then
 		echo "Publishing to dockerhub: dionjwa/docker-cloud-compute:${NPM_VERSION}"
-		./bin/publish-docker
+		# This assumes there is an image to publish
+		if [ ! -z "$DOCKER_USERNAME" ] && [ ! -z "$DOCKER_PASSWORD" ]; then
+			#Make sure we are logged in
+			docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+			DOCKER_REPO="dionjwa/docker-cloud-compute" bin/publish-docker
+		else
+			echo "DOCKER_USERNAME and DOCKER_PASSWORD are not set, skipping docker image push to docker.io";
+		fi
 	else
 		echo "No tag, not publishing image to dockerhub"
 fi
