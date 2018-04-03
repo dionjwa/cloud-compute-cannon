@@ -3,7 +3,7 @@ version: '2'
 volumes:
   redis-data:
     driver: local
-  ccc-local-storage:
+  local-storage:
     driver: local
 
 services:
@@ -18,7 +18,7 @@ services:
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ccc-local-storage:/app/ccc-local-storage
+      - local-storage:/app/local-storage
     environment:
       - PORT=9000
       - STORAGE_HTTP_PREFIX=http://ccc.local

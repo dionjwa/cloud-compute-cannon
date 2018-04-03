@@ -3,7 +3,7 @@ version: '2'
 volumes:
   redis-data:
     driver: local
-  ccc-local-storage:
+  local-storage:
     driver: local
 
 services:
@@ -17,6 +17,7 @@ services:
       - fluentd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - local-storage:/app/local-storage
     environment:
       - PORT=9000
       - STORAGE_HTTP_PREFIX=http://localhost:9000

@@ -3,13 +3,11 @@ version: '2'
 volumes:
   redis-data:
     driver: local
-  ccc-local-storage:
-    driver: local
 
 services:
 
   ccc:
-    image: "dionjwa/docker-cloud-compute:0.3.0"
+    image: "dionjwa/docker-cloud-compute:0.4.0"
     ports:
       - "9000:9000"
     links:

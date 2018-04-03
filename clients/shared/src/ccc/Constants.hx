@@ -151,7 +151,7 @@ class Constants
 	inline public static var WORKER_JOB_DEFAULT_MEMORY_REQUIRED = 512;//mb
 
 	/* docker */
-	inline public static var LOCAL_STORAGE_VOLUME = 'ccc-local-storage';
+	inline public static var LOCAL_STORAGE_VOLUME = 'local-storage';
 
 
 #if (nodejs && !macro)
