@@ -10,7 +10,7 @@ typedef LogObj = {
 
 class FluentTools
 {
-	public static function createEmitter()
+	public static function createEmitter(timestampKey :String = '@timestamp', isTimeStampString :Bool = true)
 	{
 		return function(obj :Dynamic, ?cb :Void->Void) :Void {
 			var msg :LogObj = switch(untyped __typeof__(obj)) {
@@ -18,12 +18,21 @@ class FluentTools
 				default: {message:Std.string(obj)};
 			}
 			if (Reflect.hasField(msg, 'time')) {
-				Reflect.setField(msg, '@timestamp', Reflect.field(msg, 'time').toISOString());
+				Reflect.setField(msg, timestampKey,
+					isTimeStampString ?
+						Reflect.field(msg, 'time').toISOString()
+						:
+						Reflect.field(msg, 'time').getTime());
 			}
-			if (!Reflect.hasField(msg, '@timestamp')) {
-				Reflect.setField(msg, '@timestamp', untyped __js__('new Date().toISOString()'));
+
+			if (Reflect.hasField(msg, '@timestamp')) {
+				Reflect.setField(msg, timestampKey,
+					isTimeStampString ?
+						Reflect.field(msg, '@timestamp').toISOString()
+						:
+						Reflect.field(msg, '@timestamp').getTime());
 			}
-			Reflect.deleteField(msg, 'time');
+
 			static_emitter(msg, null, cb);
 		}
 	}

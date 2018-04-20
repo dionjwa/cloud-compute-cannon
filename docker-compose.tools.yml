@@ -4,7 +4,7 @@ services:
 
   # Installs haxelibs locally
   haxelibs:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     command: ["/bin/sh", "-c", 'haxelib install --always etc/hxml/build-all.hxml && haxelib install --always clients/metaframe/build-dev.hxml']
     working_dir: /app
     volumes:
@@ -22,15 +22,17 @@ services:
     command: ["/bin/sh", "-c", "npm i"]
     volumes:
       - ./node_modules_docker:/app/node_modules
+      - ./package-lock.json:/app/package-lock.json
       - ./package.json:/app/package.json
 
   #Build all
   compile:
-    image: dionjwa/haxe-watch:v0.7.3
-    command: ["haxe", "etc/hxml/build-all.hxml", "&&", "npm", "run", "build:metaframe"]
+    image: dionjwa/haxe-watch:v0.12.0
+    command: ["sh", "-c", "haxe etc/hxml/build-all.hxml && npm run build:metaframe"]
     working_dir: /app
     volumes:
       - ./build:/app/build
+      - ./bin:/app/bin
       - ./src:/app/src
       - ./etc:/app/etc
       - ./test:/app/test
@@ -41,7 +43,7 @@ services:
       - ./node_modules_docker:/app/node_modules
 
   lambda-compile:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     command: ["haxe", "src/lambda-autoscaling/build.hxml"]
     working_dir: /app
     volumes:
@@ -52,7 +54,7 @@ services:
       - ./clients:/app/clients
 
   lambda-npm-install:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     command: ["npm", "i"]
     working_dir: /var/task
     volumes:
@@ -82,7 +84,7 @@ services:
 
   # Watches code changes for the ccc-scaling-server and recompiles the code
   watch-compiler-ccc-scaling-server:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     working_dir: /app
     command: ["/bin/bash", "-c", "chokidar --initial --verbose -c 'haxe test/services/local-scaling-server/build.hxml' test/services/local-scaling-server/src/*.hx"]
     volumes:
@@ -93,7 +95,7 @@ services:
 
   # Watches code changes for the server tester and recompiles
   ccc.tests-watch-compiler:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     working_dir: /app
     command: ["/bin/bash", "-c", "chokidar --initial --verbose -c 'haxe etc/hxml/build-tester.hxml' test/services/stand-alone-tester/src/**/*.hx"]
     volumes:
@@ -107,7 +109,7 @@ services:
 
   client-dashboard-watch:
     cpu_shares: 512
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     working_dir: /app
     command: ["/bin/bash", "-c", "chokidar --initial --verbose -c 'mkdir -p build && rsync -rptgoDv --copy-links web/* build/' web/**/*.css web/**/*.js web/**/*.html"]
     volumes:
@@ -116,7 +118,7 @@ services:
       driver: none
 
   metapage-livereload:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     command: ["/bin/bash", "-c", "chokidar --initial -c 'rsync -av clients/metaframe/web/* build/clients/metaframe/' clients/metaframe/**/*.css clients/metaframe/**/*.js clients/metaframe/**/*.html"]
     working_dir: /app
     volumes:

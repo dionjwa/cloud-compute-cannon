@@ -1,0 +1,4 @@
+build/
+data/
+tmp/
+**/node_modules

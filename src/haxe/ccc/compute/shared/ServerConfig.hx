@@ -87,7 +87,7 @@ class ServerConfig
 	public static var FLUENT_HOST :String;
 
 	@NodeProcessVar
-	public static var FLUENT_PORT :Int = 24225;
+	public static var FLUENT_PORT :Int = 24224;
 
 	/**
 	 * Used only when CLOUD_PROVIDER_TYPE=local
@@ -111,7 +111,7 @@ class ServerConfig
 	 * Bunyan log level (trace|debug|info|warn|error|critical)
 	 */
 	@NodeProcessVar
-	public static var LOG_LEVEL :String = 'info';
+	public static var LOG_LEVEL :String = 'debug';
 
 	/**
 	 * If you want to completely disable all logging.

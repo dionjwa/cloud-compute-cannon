@@ -3,7 +3,7 @@ package ccc.metaframe;
 import ccc.metaframe.model.AppModel;
 
 import js.react.websocket.WebsocketMiddleware;
-// import js.react.websocket.WebsocketAction;
+import js.react.websocket.WebsocketAction;
 
 import redux.Redux;
 import redux.Store;

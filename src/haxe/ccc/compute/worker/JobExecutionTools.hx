@@ -53,8 +53,6 @@ class JobExecutionTools
 					return JobStatsTools.getPretty(jobId);
 				})
 				.then(function(prettyJobStats) {
-					traceYellow('About to write jobResult inputsBaseUrl: ${externalBaseUrl + job.inputDir()}');
-					// traceYellow(Json.stringify(job, null, '  '));
 					jobResult = {
 						jobId: jobId,
 						status: finishedStatus,

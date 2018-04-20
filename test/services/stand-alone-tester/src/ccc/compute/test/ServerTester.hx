@@ -26,11 +26,16 @@ class ServerTester
 			.pipe(function(_) {
 				//Verify that at least a single worker is up and running
 				var f = function() {
-					var url = 'http://${ServerTesterConfig.CCC}/version';
-					return RequestPromises.get(url)
-						.then(function(result) {
-							return true;
-						});
+					var url = 'http://${ServerTesterConfig.CCC}/wait';
+
+					var check = function() {
+						return RequestPromises.get(url)
+							.then(function(result) {
+								return true;
+							});
+					}
+
+					return RetryPromise.retryRegular(check, 20, 1000);
 				}
 				return RetryPromise.retryRegular(f, 30, 500);
 			})

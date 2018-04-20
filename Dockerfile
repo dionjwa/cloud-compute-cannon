@@ -43,6 +43,7 @@ WORKDIR /app
 RUN apk update
 RUN apk add g++ gcc make python linux-headers udev git
 ADD package.json /app/package.json
+ADD package-lock.json /app/package-lock.json
 RUN npm install --quiet
 
 

@@ -24,12 +24,12 @@ class Constants
 	inline public static var APP_NAME = 'docker-cloud-compute';
 	public static var APP_SERVER_FILE = APP_NAME + '-server.js';
 	public static var APP_NAME_COMPACT = APP_NAME.replace('-', '');
-	public static var DOCKER_COMPOSE_SERVICE = 'ccc';
+	public static var DOCKER_COMPOSE_SERVICE = 'dcc';
 	public static var CLI_COMMAND = APP_NAME_COMPACT;
 
 	/* Redis */
 	inline public static var JOB_ID_ATTEMPT_SEP = '_';
-	inline public static var CONFIG_HASH = 'ccc_config';
+	inline public static var CONFIG_HASH = 'dcc_config';
 	inline public static var CONFIG_HASH_WORKERS_MAX = 'workers_max';
 	inline public static var CONFIG_HASH_WORKERS_MIN = 'workers_min';
 
@@ -66,7 +66,7 @@ class Constants
 	inline public static var ENV_AWS_KEY = 'AWS_KEY';
 	inline public static var ENV_AWS_KEYID = 'AWS_KEYID';
 	inline public static var ENV_AWS_REGION = 'AWS_REGION';
-	inline public static var ENV_VAR_CCC_ADDRESS = 'CCC_ADDRESS';
+	inline public static var ENV_VAR_DCC_ADDRESS = 'DCC_ADDRESS';
 	inline public static var ENV_DISABLE_SERVER_CHECKS = 'DISABLE_SERVER_CHECKS';
 	inline public static var ENV_LOG_LEVEL = 'LOG_LEVEL';
 	/* A flag ("true") to determine if the CLI installed this server */
@@ -101,18 +101,17 @@ class Constants
 	inline public static var SERVER_RPC_URL = '${SERVER_API_URL}${SERVER_API_RPC_URL_FRAGMENT}';
 	inline public static var SERVER_URL_API_DOCKER_IMAGE_BUILD = '$SERVER_API_URL/build';
 	inline public static var DOCKER_IMAGE_DEFAULT = 'docker.io/busybox:latest';
-	inline public static var SERVER_CONTAINER_TAG_SERVER = 'ccc_server';
-	inline public static var SERVER_CONTAINER_TAG_REDIS = 'ccc_redis';
+	inline public static var SERVER_CONTAINER_TAG_SERVER = 'dcc';
+	inline public static var SERVER_CONTAINER_TAG_REDIS = 'dcc_redis';
 	inline public static var SERVER_INSTALL_COMPOSE_SCRIPT = 'etc/server/install_docker_compose.sh';
-	inline public static var SERVER_MOUNTED_CONFIG_FILE_NAME = 'ccc.yml';
-	inline public static var SERVER_MOUNTED_CONFIG_FILE_DEFAULT = 'config/$SERVER_MOUNTED_CONFIG_FILE_NAME';
+	// inline public static var SERVER_MOUNTED_CONFIG_FILE_DEFAULT = 'config/$SERVER_MOUNTED_CONFIG_FILE_NAME';
 	public static var SERVER_LOCAL_HOST :Host = new Host(new HostName('localhost'), new Port(SERVER_DEFAULT_PORT));
 
 	/* WORKER TAGS */
-	inline public static var INSTANCE_TAG_TYPE_KEY = 'CCC_TYPE';
+	inline public static var INSTANCE_TAG_TYPE_KEY = 'DCC_TYPE';
 	inline public static var INSTANCE_TAG_TYPE_VALUE_WORKER = 'worker';
 	inline public static var INSTANCE_TAG_TYPE_VALUE_SERVER = 'server';
-	inline public static var INSTANCE_TAG_OWNER_KEY = 'CCC_OWNER';
+	inline public static var INSTANCE_TAG_OWNER_KEY = 'DCC_OWNER';
 
 	/* Fluent/logging */
 	inline public static var FLUENTD_SOURCE_PORT = 24225;

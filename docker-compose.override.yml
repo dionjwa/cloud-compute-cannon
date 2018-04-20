@@ -9,7 +9,7 @@ volumes:
 services:
 
   server:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     cpu_shares: 1024
     # ports:
     #   - "9000:9000"
@@ -45,7 +45,7 @@ services:
 
   # Run the functional and scaling tests in a separate container
   ccc.tests:
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     working_dir: /app
     # Switch these when developing locally
     command: ["nodemon", "-L", "--watch", "build/test", "build/test/docker-cloud-compute-tester.js"]
@@ -86,7 +86,7 @@ services:
     links:
       - redis
     ports:
-      - "8083:8081"
+      - "8181:8081"
     logging:
         driver: none
 
@@ -107,7 +107,7 @@ services:
   # Also used to test worker failure
   ccc-scaling-server:
     cpu_shares: 512
-    image: dionjwa/haxe-watch:v0.7.3
+    image: dionjwa/haxe-watch:v0.12.0
     command: ["nodemon", "local-scaling-server/docker-cloud-compute-scaling-server.js"]
     working_dir: /app
     volumes:
@@ -118,7 +118,7 @@ services:
       - PORT=4015
       - REDIS_HOST=redis
       - CCC=http://ccc.local
-      - LOG_LEVEL=40
+      - LOG_LEVEL=warn
     ports:
       - "4015:4015"
     links:
@@ -134,7 +134,7 @@ services:
   ccc.local:
     image: jwilder/nginx-proxy
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8180:80"
     environment:
       - DEFAULT_HOST=ccc.local
     volumes:

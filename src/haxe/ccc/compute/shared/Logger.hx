@@ -80,9 +80,11 @@ class Logger
 
 	inline static function __init__()
 	{
-		var level = js.Node.process.env.get('LOG_LEVEL');
-		level = level != null ? level : 'info';
-		level = 'debug';
+		var level = switch(js.Node.process.env.get('LOG_LEVEL')) {
+			case 'trace','debug','info','warn','error','critical' : js.Node.process.env.get('LOG_LEVEL');
+			default: 'debug';
+		}
+
  		var streams :Array<Dynamic> = [
 			{
 				level: level,
@@ -90,15 +92,20 @@ class Logger
 			}
 		];
 
-		if (ServerConfig.FLUENT_HOST != null) {
+		if (ServerConfig.FLUENT_HOST != null && ServerConfig.FLUENT_HOST != "") {
 #if (!clientjs)
-			var fluentLogger = {write:ccc.compute.server.logs.FluentTools.createEmitter()};
+			js.Node.console.log('Fluent emitter->${ServerConfig.FLUENT_HOST}');
+			var fluentLogger = {write:ccc.compute.server.logs.FluentTools.createEmitter('time', false)};
 			streams.push({
 				level: level,
 				type: 'raw',// use 'raw' to get raw log record objects
 				stream: fluentLogger
 			});
+#else
+			trace('FLUENT_HOST=${ServerConfig.FLUENT_HOST} but this is client javascript, there is no FLUENT_HOST possible');
 #end
+		} else {
+			js.Node.console.log('No fluent emitter');
 		}
 
 		log = new AbstractLogger(

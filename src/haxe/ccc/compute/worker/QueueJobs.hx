@@ -37,14 +37,6 @@ typedef ProcessArguments = { >QueueArguments,
 	var remoteStorage :ServiceStorage;
 }
 
-// typedef QueueJob<T:(JobTypes)> = {//BatchProcessRequestTurboV2
-// 	var jobId :JobId;
-// 	var attempt :Int;
-// 	var type :QueueJobDefinitionType;
-// 	@:optional var item :T;
-// 	@:optional var parameters :JobParams;
-// }
-
 enum ProcessFinishReason {
 	Cancelled;
 	Success(result :JobResult);
@@ -115,11 +107,7 @@ class QueueJobs
 	public function add(job :QueueJobDefinition) :Promise<Bool>
 	{
 		var isGpu = job.parameters != null && job.parameters.gpu;
-		return QueueTools.addJobToQueue(isGpu ? queuesAdd.gpu : queuesAdd.cpu, job, log)
-			.then(function(_) {
-				postQueueSize();
-				return true;
-			});
+		return QueueTools.addJobToQueue(isGpu ? queuesAdd.gpu : queuesAdd.cpu, job, log);
 	}
 
 	public function cancel(jobId :JobId) :Promise<Bool>
@@ -402,7 +390,7 @@ class QueueJobs
 	{
 		queueProcess.getJobCounts().promhx()
 			.then(function(counts) {
-				log.info(LogFieldUtil.addWorkerEvent({queue:counts}, WorkerEventType.QUEUES));
+				log.debug(LogFieldUtil.addWorkerEvent({queue:counts}, WorkerEventType.QUEUES));
 			})
 			.catchError(function(err) {
 				log.warn({error:err, message: 'Failed to get queue count'});

@@ -6,7 +6,7 @@ import ccc.dashboard.state.*;
 import haxe.Serializer;
 import haxe.Unserializer;
 
-import js.react.util.WebsocketTools;
+import js.react.websocket.WebsocketTools;
 
 import redux.Redux;
 
