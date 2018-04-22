@@ -1,0 +1,75 @@
+version: '2'
+
+services:
+
+  server:
+    environment:
+      - STORAGE_HTTP_PREFIX=http://ccc.local
+      - FLUENT_HOST=fluentd
+    depends_on:
+      - redis
+      - fluentd
+
+  #Examine redis db
+  redis-commander:
+    cpu_shares: 256
+    image: tenstartups/redis-commander
+    command: --redis-host redis
+    networks:
+      - dcc
+    depends_on:
+      - redis
+    ports:
+      - "8181:8081"
+    logging:
+        driver: none
+
+  redis-bull:
+    cpu_shares: 256
+    image: mixmaxhq/arena
+    volumes:
+      - ./etc/redis/arena-index.json:/opt/arena/src/server/config/index.json
+    depends_on:
+      - redis
+    ports:
+      - "4567:4567"
+    networks:
+      - dcc
+    logging:
+        driver: none
+
+  fluentd:
+    build: ./etc/log/
+    volumes:
+      - ./etc/log/fluent.elasticsearch.conf:/fluentd/etc/fluent.conf
+    depends_on:
+      - elasticsearch
+    networks:
+      - dcc
+    logging:
+      driver: none
+
+  elasticsearch:
+    image: elasticsearch:2.4.5-alpine
+    ports:
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - dcc
+    logging:
+      driver: none
+
+  kibana:
+    image: kibana:4.6.6
+    ports:
+      - "127.0.0.1:5601:5601"
+    environment:
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
+    networks:
+      - dcc
+    depends_on:
+      - elasticsearch
+    logging:
+      driver: none

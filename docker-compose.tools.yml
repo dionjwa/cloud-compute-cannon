@@ -28,7 +28,7 @@ services:
   #Build all
   compile:
     image: dionjwa/haxe-watch:v0.15.0
-    command: ["sh", "-c", "haxe etc/hxml/build-all.hxml && node_modules/.bin/webpack"]
+    command: ["sh", "-c", "make compile"]
     working_dir: /app
     volumes:
       - ./build:/app/build
@@ -39,6 +39,7 @@ services:
       - ./.haxelib:/app/.haxelib
       - ./clients:/app/clients
       - ./package.json:/app/package.json
+      - ./Makefile:/app/Makefile
       - ./.git:/app/.git
       - ./node_modules_docker:/app/node_modules
 
@@ -107,20 +108,3 @@ services:
     logging:
       driver: none
 
-  client-dashboard-watch:
-    cpu_shares: 512
-    image: dionjwa/haxe-watch:v0.15.0
-    working_dir: /app
-    command: ["/bin/bash", "-c", "chokidar --initial --verbose -c 'mkdir -p build && rsync -rptgoDv --copy-links web/* build/' web/**/*.css web/**/*.js web/**/*.html"]
-    volumes:
-      - ./clients/dashboard:/app
-    logging:
-      driver: none
-
-  metapage-livereload:
-    image: dionjwa/haxe-watch:v0.15.0
-    command: ["/bin/bash", "-c", "chokidar --initial -c 'rsync -av clients/metaframe/web/* build/clients/metaframe/' clients/metaframe/**/*.css clients/metaframe/**/*.js clients/metaframe/**/*.html"]
-    working_dir: /app
-    volumes:
-      - ./:/app
-    # tty: true

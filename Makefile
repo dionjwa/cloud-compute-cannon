@@ -11,13 +11,24 @@ IMAGE_NAME                 = docker-cloud-compute
 export REMOTE_REPO        ?= dionjwa/docker-cloud-compute
 COMPOSE_TOOLS              = docker-compose -f docker-compose.tools.yml run
 
+HAXE := $(shell command -v haxe 2> /dev/null)
+
+
 # Build the docker image
 .PHONY: image
 image:
 	docker build -t ${IMAGE_NAME}:${VERSION} .
 
+
+.PHONY: prerequisites
+prerequisites:
+ifndef HAXE
+    $(error "haxe is not available please install haxe")
+endif
+
+
 .PHONY: server
-server:
+server: prerequisites
 	haxe etc/hxml/server-build.hxml
 
 .PHONY: metaframe
@@ -69,31 +80,27 @@ npm:
 	${COMPOSE_TOOLS} node_modules
 
 .PHONY: init
-init: npm haxelib
-	cd clients/metaframe && npm i && cd ../../
-	./bin/compile
+init: npm haxelib compile
 
 .PHONY: compile
-compile:
-	${COMPOSE_TOOLS} compile
+compile: prerequisites webpack
+	haxe etc/hxml/build-all.hxml
 
 # Develop with tests running on code changes
 .PHONY: develop
 develop:
-	./bin/compile
-	TEST=true TEST_SCALING=false docker-compose up
+	itermocil
 
 .PHONY: develop-extra
-develop-extra:
-	./bin/compile
+develop-extra: compile
 	TEST=true TEST_SCALING=false docker-compose up
 
 .PHONY: haxelib
-haxelib:
+haxelib: prerequisites
 	mkdir -p .haxelib && haxelib --always install etc/hxml/build-all.hxml && haxelib --always install clients/metaframe/build.hxml
 
 .PHONY: webpack
-webpack:
+webpack: prerequisites
 	node_modules/.bin/webpack
 
 .PHONY: set-build-server
@@ -108,6 +115,6 @@ set-build-metaframe:
 set-build-all:
 	rm -f build.hxml && ln -s etc/hxml/build-all.hxml build.hxml
 
-.PHONY: devserver
-devserver:
+.PHONY: webpack-watch
+webpack-watch: prerequisites
 	node_modules/.bin/webpack-dev-server --watch --content-base clients/

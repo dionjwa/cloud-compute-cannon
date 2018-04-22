@@ -5,7 +5,7 @@ volumes:
     driver: local
 
 networks:
-  local:
+  dcc:
     driver: bridge
 
 services:
@@ -28,7 +28,7 @@ services:
       - LOG_LEVEL=info
       - HOST_PWD=${PWD}
     networks:
-      - local
+      - dcc
 
   # Run the functional and scaling tests in a separate container
   ccc.tests:
@@ -44,7 +44,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - local
+      - dcc
     depends_on:
       - redis1
       - dcc
@@ -52,4 +52,4 @@ services:
   redis1:
     image: redis:3.2.0-alpine
     networks:
-      - local
+      - dcc

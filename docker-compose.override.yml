@@ -1,10 +1,10 @@
 version: '2'
 
-volumes:
-  elasticsearch_data:
-    driver: local
-  local-storage:
-    driver: local
+# volumes:
+#   elasticsearch_data:
+#     driver: local
+#   local-storage:
+#     driver: local
 
 services:
 
@@ -17,9 +17,8 @@ services:
       - 9000
     # Extra args for debugging: --inspect, --debug-brk
     command: ["nodemon", "-L", "-w", "server", "server/docker-cloud-compute-server.js"]
-    links:
+    depends_on:
       - redis
-      - fluentd
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -34,11 +33,12 @@ services:
       - STORAGE_HTTP_PREFIX=http://ccc.local
       - REDIS_HOST=redis
       - VIRTUAL_HOST=ccc.local
-      - FLUENT_HOST=fluentd
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - WORKER_STATUS_CHECK_INTERVAL_SECONDS=20
       - DISABLE_REQUEST_LOGS=true
       - DISABLE_WORKER=false
+    networks:
+      - dcc
     labels:
       ccc.type: "server"
       ccc.origin: "docker-compose"
@@ -61,7 +61,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./build:/app/build
       - ./node_modules_docker:/app/node_modules
-    links:
+    networks:
+      - dcc
+    depends_on:
       - ccc.local
       - redis
       - ccc-scaling-server
@@ -73,34 +75,12 @@ services:
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "6379"
+    networks:
+      - dcc
     volumes:
       - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
     # logging:
     #   driver: none
-
-  #Examine redis db
-  redis-commander:
-    cpu_shares: 256
-    image: tenstartups/redis-commander
-    command: --redis-host redis
-    links:
-      - redis
-    ports:
-      - "8181:8081"
-    logging:
-        driver: none
-
-  redis-bull:
-    cpu_shares: 256
-    image: mixmaxhq/arena
-    volumes:
-      - ./etc/redis/arena-index.json:/opt/arena/src/server/config/index.json
-    links:
-      - redis
-    ports:
-      - "4567:4567"
-    logging:
-        driver: none
 
   # Replicates (mocks) e.g. AWS AutoScalingGroups, by creating and destroying
   # workers based on the desired capacity.
@@ -119,13 +99,13 @@ services:
       - REDIS_HOST=redis
       - CCC=http://ccc.local
       - LOG_LEVEL=warn
+    networks:
+      - dcc
     ports:
       - "4015:4015"
-    links:
+    depends_on:
       - redis
       - ccc.local
-    depends_on:
-      - server
 
   # The internal scaling service (mocks e.g. an AWS autoscaling group)
   # creates and destroys workers dynamically. This container detects
@@ -145,46 +125,3 @@ services:
       - server
     logging:
       driver: none
-
-  fluentd:
-    build: ./etc/log/
-    volumes:
-      - ./etc/log/fluent.elasticsearch.conf:/fluentd/etc/fluent.conf
-    links:
-      - elasticsearch
-    logging:
-      driver: none
-
-  elasticsearch:
-    image: elasticsearch:2.4.5-alpine
-    ports:
-      - "127.0.0.1:9200:9200"
-      - "127.0.0.1:9300:9300"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    logging:
-      driver: none
-
-  kibana:
-    image: kibana:4.6.6
-    ports:
-      - "127.0.0.1:5601:5601"
-    environment:
-      ELASTICSEARCH_URL: "http://elasticsearch:9200"
-    links:
-      - elasticsearch
-    logging:
-      driver: none
-
-  # livereload:
-  #   cpu_shares: 512
-  #   image: dionjwa/livereloadx
-  #   command: ["livereloadx", "-p", "35729", "--proxy", "http://server:9000", "--prefer-local", "/app/build"]
-  #   ports:
-  #     - "35729:35729"
-  #   volumes:
-  #     - ./clients/dashboard:/app/
-  #   links:
-  #     - server:server
-  #   logging:
-  #     driver: none

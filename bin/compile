@@ -24,7 +24,7 @@ path_to_haxe=$(which haxe || true)
 if [ -x "$path_to_haxe" ] && [ "$TRAVIS" != "1" ] ; then
 	echo "haxe is available! $path_to_haxe"
 	haxe etc/hxml/build-all.hxml
-	./bin/build-metaframe
+	# ./bin/build-metaframe
 else
 	$COMPOSE_TOOLS compile
 fi

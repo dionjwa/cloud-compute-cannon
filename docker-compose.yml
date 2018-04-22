@@ -6,6 +6,10 @@ volumes:
   local-storage:
     driver: local
 
+networks:
+  dcc:
+    driver: bridge
+
 services:
 
   server:
@@ -13,7 +17,7 @@ services:
     cpu_shares: 1024
     ports:
       - "9090:9000"
-    links:
+    depends_on:
       - redis
     working_dir: /app
     volumes:
@@ -24,10 +28,14 @@ services:
       - STORAGE_HTTP_PREFIX=http://ccc.local
       - REDIS_HOST=redis
       - LOG_LEVEL=info
+    networks:
+      - dcc
 
   redis:
     cpu_shares: 256
     image: redis:3.2.0-alpine
     command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - dcc
     volumes:
       - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
