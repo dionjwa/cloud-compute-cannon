@@ -1,4 +1,3 @@
--lib modular:0.9.3
 -lib react:1.3.0
 -lib react-router:0.1.0
 -lib redux:0.5.1

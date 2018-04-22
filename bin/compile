@@ -8,7 +8,7 @@ COMPOSE_TOOLS="docker-compose -f docker-compose.tools.yml run"
 
 pushd $ROOTPATH
 # Delete all prior builds
-rm -rf build
+rm -rf build/*
 # Recreate the build folders. This SHOULD be done automatically
 # in the haxe build process, but there is a weird interaction with
 # docker, and I often see errors such as:

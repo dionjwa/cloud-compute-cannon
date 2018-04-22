@@ -8,21 +8,19 @@
 ################################################
 # Build metaframe client libs and resources
 ################################################
-FROM dionjwa/haxe-watch:v0.10.0 as builder-metaframe-builder
+FROM dionjwa/haxe-watch:v0.15.0 as builder-metaframe-builder
 
 # Package the npm dependencies and package with browserify into a single file (libs.js)
-COPY ./clients/metaframe/package.json /app/clients/metaframe/package.json
-WORKDIR /app/clients/metaframe
-# This needs the global flag so that haxe-modular can be reached
-# when in a parent directory at the haxe build step (last)
+WORKDIR /app
+COPY ./package.json /app/package.json
+COPY ./package-lock.json /app/package-lock.json
+
 RUN npm install
-RUN npm install -g haxe-modular
 
 COPY ./clients/shared/hxml /app/clients/shared/hxml
 COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
-WORKDIR /app
-RUN haxelib newrepo
-RUN haxelib --always install ./clients/metaframe/build.hxml
+COPY ./Makefile /app/Makefile
+RUN make haxelib
 
 # Add web media files
 COPY ./clients/shared/src /app/clients/shared/src
@@ -30,7 +28,9 @@ COPY ./clients/metaframe/web /app/clients/metaframe/web
 COPY ./clients/metaframe/src /app/clients/metaframe/src
 COPY ./bin/build-metaframe /app/bin/build-metaframe
 
-RUN /app/bin/build-metaframe
+COPY ./webpack.config.json /app/webpack.config.json
+
+RUN make webpack
 
 ################################################
 # Build server npm libraries

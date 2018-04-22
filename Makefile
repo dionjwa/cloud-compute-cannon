@@ -16,6 +16,13 @@ COMPOSE_TOOLS              = docker-compose -f docker-compose.tools.yml run
 image:
 	docker build -t ${IMAGE_NAME}:${VERSION} .
 
+.PHONY: server
+server:
+	haxe etc/hxml/server-build.hxml
+
+.PHONY: metaframe
+metaframe: webpack
+
 .PHONY: clean
 clean:
 	TEST=false TEST_SCALING=false docker-compose rm -fv
@@ -62,10 +69,13 @@ npm:
 	${COMPOSE_TOOLS} node_modules
 
 .PHONY: init
-init: npm
-	${COMPOSE_TOOLS} haxelibs
+init: npm haxelib
 	cd clients/metaframe && npm i && cd ../../
 	./bin/compile
+
+.PHONY: compile
+compile:
+	${COMPOSE_TOOLS} compile
 
 # Develop with tests running on code changes
 .PHONY: develop
@@ -73,3 +83,31 @@ develop:
 	./bin/compile
 	TEST=true TEST_SCALING=false docker-compose up
 
+.PHONY: develop-extra
+develop-extra:
+	./bin/compile
+	TEST=true TEST_SCALING=false docker-compose up
+
+.PHONY: haxelib
+haxelib:
+	mkdir -p .haxelib && haxelib --always install etc/hxml/build-all.hxml && haxelib --always install clients/metaframe/build.hxml
+
+.PHONY: webpack
+webpack:
+	node_modules/.bin/webpack
+
+.PHONY: set-build-server
+set-build-server:
+	rm -f build.hxml && ln -s etc/hxml/server-build.hxml build.hxml
+
+.PHONY: set-build-metaframe
+set-build-metaframe:
+	rm -f build.hxml && ln -s clients/metaframe/build.hxml build.hxml
+
+.PHONY: set-build-all
+set-build-all:
+	rm -f build.hxml && ln -s etc/hxml/build-all.hxml build.hxml
+
+.PHONY: devserver
+devserver:
+	node_modules/.bin/webpack-dev-server --watch --content-base clients/
