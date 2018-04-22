@@ -30,23 +30,6 @@ COPY ./clients/metaframe/web /app/clients/metaframe/web
 COPY ./clients/metaframe/src /app/clients/metaframe/src
 COPY ./bin/build-metaframe /app/bin/build-metaframe
 
-# Add web media files
-# COPY ./clients/metaframe/web /app/build/clients/metaframe
-
-# COPY ./clients/metaframe/src/libs.js /app/clients/metaframe/src/libs.js
-# RUN npm run libs
-
-# COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
-# COPY ./clients/shared/hxml /app/clients/shared/hxml
-
-# WORKDIR /app
-# RUN haxelib newrepo
-# RUN haxelib --always install ./clients/metaframe/build.hxml
-
-# COPY ./clients/metaframe/src /app/clients/metaframe/src
-# COPY ./clients/shared/src /app/clients/shared/src
-# RUN haxe clients/metaframe/build.hxml
-
 RUN /app/bin/build-metaframe
 
 ################################################
