@@ -80,7 +80,7 @@
   },
   "devDependencies": {
     "express-livereload": "^0.0.24",
-    "haxe-modular": "^0.9.3",
+    "haxe-modular": "^0.10.9",
     "react-hot-loader": "^3.1.3",
     "redis-mock": "^0.20.0",
     "webpack": "^3.11.0",

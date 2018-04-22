@@ -28,7 +28,7 @@ class Main
 	**/
 	public static function main()
 	{
-		Webpack.require('./Main.css');
+		// Webpack.require('./Main.css');
 		var store = ApplicationStore.create();
 		var root = createRoot();
 		render(root, store);
