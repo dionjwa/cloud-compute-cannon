@@ -32,7 +32,7 @@ test: image test-post-image
 .PHONY: test-post-image
 test-post-image:
 	./bin/compile
-	TEST=true TEST_SCALING=false docker-compose run ccc.tests
+	TRAVIS=1 VERSION=$GIT_TAG docker-compose -f docker-compose.travis.yml run --rm ccc.tests
 
 .PHONY: push
 push: image push-post-image

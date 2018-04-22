@@ -4,29 +4,31 @@ volumes:
   local-storage:
     driver: local
 
+networks:
+  local:
+    driver: bridge
+
 services:
 
-  serverworker:
+  dcc:
     image: "docker-cloud-compute:${VERSION}"
-    expose:
-      - 9000
+    ports:
+      - "9000:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       #This volume is needed for running computes locally
       - local-storage:/app/local-storage
     command: ["node", "server/docker-cloud-compute-server.js"]
-    links:
+    depends_on:
       - redis1
     environment:
       - PORT=9000
-      - STORAGE_HTTP_PREFIX=http://ccc.local
+      # - STORAGE_HTTP_PREFIX=http://ccc.local
       - REDIS_HOST=redis1
-      - VIRTUAL_HOST=ccc.local
       - LOG_LEVEL=info
       - HOST_PWD=${PWD}
-    labels:
-      ccc.type: "worker"
-      ccc.origin: "docker-compose"
+    networks:
+      - local
 
   # Run the functional and scaling tests in a separate container
   ccc.tests:
@@ -34,62 +36,20 @@ services:
     working_dir: /app
     command: ["node",  "test/docker-cloud-compute-tester.js"]
     environment:
-      - CCC=ccc.local
-      - CCC_SCALING=ccc-scaling-server:4015
+      - CCC=dcc
       - LOG_LEVEL=debug
       - REDIS_HOST=redis1
       - TRAVIS_REPO_SLUG=${TRAVIS_REPO_SLUG}
       - TEST=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    links:
-      - ccc.local
+    networks:
+      - local
+    depends_on:
       - redis1
-      - ccc-scaling-server
+      - dcc
 
   redis1:
     image: redis:3.2.0-alpine
-    command: redis-server /usr/local/etc/redis/redis.conf
-    volumes:
-      - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
-
-  # Replicates (mocks) e.g. AWS AutoScalingGroups, by creating and destroying
-  # workers based on the desired capacity.
-  # Also used to test worker failure
-  ccc-scaling-server:
-    image: "docker-cloud-compute:${VERSION}"
-    command: ["node", "local-scaling-server/docker-cloud-compute-scaling-server.js"]
-    working_dir: /app
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - PORT=4015
-      - REDIS_HOST=redis1
-      - CCC=http://ccc.local
-    ports:
-      - "4015:4015"
-    links:
-      - redis1
-      - ccc.local
-    depends_on:
-      - serverworker
-
-  # The internal scaling service (mocks e.g. an AWS autoscaling group)
-  # creates and destroys workers dynamically. This container detects
-  # new workers and modifies the nginx config to reverse proxy the
-  # workers a single API endpoint can be used.
-  ccc.local:
-    image: jwilder/nginx-proxy
-    ports:
-      - "8080:80"
-    environment:
-      - DEFAULT_HOST=ccc.local
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./etc/nginx/ccc.local.conf:/etc/nginx/vhost.d/ccc.local
-      - ./etc/nginx/proxy.conf:/etc/nginx/proxy.conf
-    depends_on:
-      - serverworker
-    logging:
-      driver: none
-
+    networks:
+      - local
