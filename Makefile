@@ -1,7 +1,7 @@
-# MIGRATION NOTE (TODO):
-# I did not know much about Makefiles when I created this system,
-# so there are a bunch of interlinked scripts in ./bin that really
-# belong in here. Moving them will be part of tech debt.
+# First default:
+# "develop". It should depend on being able to quickly determine if 'init' has
+# already ran.
+# Then "init" should be ran.
 
 # Build and test commands
 
@@ -9,23 +9,35 @@ SHELL                      = /bin/bash
 VERSION                    = 0.4.4
 IMAGE_NAME                 = docker-cloud-compute
 export REMOTE_REPO        ?= dionjwa/docker-cloud-compute
+COMPOSE_DEV_BASE           = docker-compose -f docker-compose.yml -f docker-compose.override.yml
 COMPOSE_TOOLS              = docker-compose -f docker-compose.tools.yml run
+export GIT_TAG             = $$(git rev-parse --short=8 HEAD)
 
 HAXE := $(shell command -v haxe 2> /dev/null)
 
+# Develop with tests running on code changes
+.PHONY: develop
+develop: develop-check
+	TEST=true TEST_SCALING=false docker-compose up
+
+# Quick check if "init" has been called
+.PHONY: develop-check
+develop-check:
+	@if [ ! -d ".haxelib" ]; then echo 'Requires "make init"'; exit 1; fi
+
+.PHONY: init
+init: npm haxelib compile
 
 # Build the docker image
 .PHONY: image
 image:
 	docker build -t ${IMAGE_NAME}:${VERSION} .
 
-
 .PHONY: prerequisites
 prerequisites:
 ifndef HAXE
     $(error "haxe is not available please install haxe")
 endif
-
 
 .PHONY: server
 server: prerequisites
@@ -49,8 +61,7 @@ test: image test-post-image
 
 .PHONY: test-post-image
 test-post-image:
-	./bin/compile
-	TRAVIS=1 VERSION=$GIT_TAG docker-compose -f docker-compose.travis.yml run --rm ccc.tests
+	TRAVIS=1 VERSION=${VERSION} docker-compose -f docker-compose.travis.yml up --abort-on-container-exit --exit-code-from dcc.tests
 
 .PHONY: push
 push: image push-post-image
@@ -78,26 +89,23 @@ tag:
 .PHONY: npm
 npm:
 	${COMPOSE_TOOLS} node_modules
-
-.PHONY: init
-init: npm haxelib compile
+	npm install
 
 .PHONY: compile
 compile: prerequisites webpack
 	haxe etc/hxml/build-all.hxml
-
-# Develop with tests running on code changes
-.PHONY: develop
-develop:
-	itermocil
 
 .PHONY: develop-extra
 develop-extra: compile
 	TEST=true TEST_SCALING=false docker-compose up
 
 .PHONY: haxelib
-haxelib: prerequisites
-	mkdir -p .haxelib && haxelib --always install etc/hxml/build-all.hxml && haxelib --always install clients/metaframe/build.hxml
+haxelib: haxelib-client
+	haxelib --always install etc/hxml/build-all.hxml
+
+.PHONY: haxelib-client
+haxelib-client: prerequisites
+	mkdir -p .haxelib && haxelib --always install build-metaframe.hxml
 
 .PHONY: webpack
 webpack: prerequisites
@@ -111,6 +119,10 @@ set-build-server:
 set-build-metaframe:
 	rm -f build.hxml && ln -s clients/metaframe/build.hxml build.hxml
 
+.PHONY: set-build-test
+set-build-test:
+	rm -f build.hxml && ln -s test/services/stand-alone-tester/build.hxml build.hxml
+
 .PHONY: set-build-all
 set-build-all:
 	rm -f build.hxml && ln -s etc/hxml/build-all.hxml build.hxml
@@ -118,3 +130,8 @@ set-build-all:
 .PHONY: webpack-watch
 webpack-watch: prerequisites
 	node_modules/.bin/webpack-dev-server --watch --content-base clients/
+
+# More obscure develop options
+.PHONY: develop-server-workers
+develop-server-workers: develop-check compile
+	TEST=true ${COMPOSE_DEV_BASE} -f docker-compose.extras-logging.yml  -f docker-compose.extras-workers.yml up

@@ -10,7 +10,7 @@ class TestScaling
 	@timeout(300000)
 	public function testLambdaScaling() :Promise<Bool>
 	{
-		var url = 'http://${ServerTesterConfig.CCC_SCALING}/test';
+		var url = 'http://${ServerTesterConfig.DCC_SCALING}/test';
 		var f = function() {
 			return RequestPromises.get(url)
 				.then(Json.parse)

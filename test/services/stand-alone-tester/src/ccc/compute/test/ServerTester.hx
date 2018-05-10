@@ -26,7 +26,7 @@ class ServerTester
 			.pipe(function(_) {
 				//Verify that at least a single worker is up and running
 				var f = function() {
-					var url = 'http://${ServerTesterConfig.CCC}/wait';
+					var url = 'http://${ServerTesterConfig.DCC}/wait';
 
 					var check = function() {
 						return RequestPromises.get(url)
@@ -80,7 +80,7 @@ class ServerTester
 		}
 
 		//Wait on the main server
-		var url = 'http://${ServerTesterConfig.CCC}/version';
+		var url = 'http://${ServerTesterConfig.DCC}/version';
 		var poll = function() {
 			return RequestPromises.get(url)
 				.then(function(result) {

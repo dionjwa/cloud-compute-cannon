@@ -18,9 +18,7 @@ COPY ./package-lock.json /app/package-lock.json
 RUN npm install
 
 COPY ./clients/shared/hxml /app/clients/shared/hxml
-COPY ./clients/metaframe/build.hxml /app/clients/metaframe/build.hxml
-COPY ./Makefile /app/Makefile
-RUN make haxelib
+COPY ./build-metaframe.hxml /app/build-metaframe.hxml
 
 # Add web media files
 COPY ./clients/shared/src /app/clients/shared/src
@@ -28,8 +26,11 @@ COPY ./clients/metaframe/web /app/clients/metaframe/web
 COPY ./clients/metaframe/src /app/clients/metaframe/src
 COPY ./bin/build-metaframe /app/bin/build-metaframe
 
-COPY ./webpack.config.json /app/webpack.config.json
+COPY ./webpack.config.js /app/webpack.config.js
 
+COPY ./Makefile /app/Makefile
+
+RUN make haxelib-client
 RUN make webpack
 
 ################################################

@@ -13,8 +13,8 @@ class ServerTestTools
 	public static function getServerAddress() :Host
 	{
 		var env = Sys.environment();
-		if (env.exists('CCC')) {
-			return env.get('CCC');
+		if (env.exists('DCC')) {
+			return env.get('DCC');
 		} else {
 			return new Host(new HostName('localhost'), new Port(SERVER_DEFAULT_PORT));
 		}

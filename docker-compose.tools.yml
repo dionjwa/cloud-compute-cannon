@@ -1,4 +1,4 @@
-version: '2'
+version: '2.3'
 
 services:
 
@@ -83,8 +83,8 @@ services:
     logging:
       driver: none
 
-  # Watches code changes for the ccc-scaling-server and recompiles the code
-  watch-compiler-ccc-scaling-server:
+  # Watches code changes for the dcc-scaling-server and recompiles the code
+  watch-compiler-dcc-scaling-server:
     image: dionjwa/haxe-watch:v0.15.0
     working_dir: /app
     command: ["/bin/bash", "-c", "chokidar --initial --verbose -c 'haxe test/services/local-scaling-server/build.hxml' test/services/local-scaling-server/src/*.hx"]
@@ -95,7 +95,7 @@ services:
       driver: none
 
   # Watches code changes for the server tester and recompiles
-  ccc.tests-watch-compiler:
+  dcc.tests-watch-compiler:
     image: dionjwa/haxe-watch:v0.15.0
     working_dir: /app
     command: ["/bin/bash", "-c", "chokidar --initial --verbose -c 'haxe etc/hxml/build-tester.hxml' test/services/stand-alone-tester/src/**/*.hx"]

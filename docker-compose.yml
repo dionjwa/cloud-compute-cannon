@@ -1,4 +1,4 @@
-version: '2'
+version: '2.3'
 
 volumes:
   redis-data:
@@ -14,9 +14,6 @@ services:
 
   server:
     image: quay.io/bionano/docker-cloud-compute:dd574008
-    cpu_shares: 1024
-    ports:
-      - "9090:9000"
     depends_on:
       - redis
     working_dir: /app
@@ -25,14 +22,14 @@ services:
       - local-storage:/app/local-storage
     environment:
       - PORT=9000
-      - STORAGE_HTTP_PREFIX=http://ccc.local
+      - STORAGE_HTTP_PREFIX=http://dcc.local
       - REDIS_HOST=redis
       - LOG_LEVEL=info
+      - WORKER_STATUS_CHECK_INTERVAL_SECONDS=3000
     networks:
       - dcc
 
   redis:
-    cpu_shares: 256
     image: redis:3.2.0-alpine
     command: redis-server /usr/local/etc/redis/redis.conf
     networks:

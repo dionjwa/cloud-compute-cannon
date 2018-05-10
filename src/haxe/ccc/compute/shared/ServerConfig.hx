@@ -77,7 +77,7 @@ class ServerConfig
 	 * developing it can be useful to disable them.
 	 */
 	@NodeProcessVar
-	public static var DISABLE_REQUEST_LOGS :Bool = true;
+	public static var DISABLE_REQUEST_LOGS :Bool = false;
 
 	/**
 	 * The host for the fluent log aggregator. If this
@@ -92,11 +92,11 @@ class ServerConfig
 	/**
 	 * Used only when CLOUD_PROVIDER_TYPE=local
 	 * The default allows the nginx reverse proxy
-	 * to automatically route requests to ccc
-	 * servers for newly created ccc containers.
+	 * to automatically route requests to dcc
+	 * servers for newly created dcc containers.
 	 */
 	@NodeProcessVar
-	public static var HOST :String = 'http://ccc.local';
+	public static var HOST :String = 'http://dcc.local';
 
 	/**
 	 * If the kibana url is passed in to the app, it
@@ -168,7 +168,7 @@ class ServerConfig
 	 * This needs to be better documented. Local development only.
 	 */
 	@NodeProcessVar
-	public static var STORAGE_HTTP_PREFIX :String = 'http://ccc.local';
+	public static var STORAGE_HTTP_PREFIX :String = 'http://dcc.local';
 
 	/**
 	 * The interval where workers report their health status to redis
@@ -178,7 +178,7 @@ class ServerConfig
 
 	//Statics. You don't need to change these unless you're developing.
 	inline public static var INJECTOR_REDIS_SUBSCRIBE :String = 'REDIS_SUBSCRIBE';
-	inline public static var REDIS_PREFIX :String = 'ccc::';
+	inline public static var REDIS_PREFIX :String = 'dcc::';
 
 	public static function toJson() :Dynamic
 	{

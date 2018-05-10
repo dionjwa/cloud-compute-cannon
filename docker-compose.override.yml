@@ -1,18 +1,10 @@
-version: '2'
-
-# volumes:
-#   elasticsearch_data:
-#     driver: local
-#   local-storage:
-#     driver: local
+version: '2.3'
 
 services:
 
   server:
     image: dionjwa/haxe-watch:v0.15.0
     cpu_shares: 1024
-    # ports:
-    #   - "9000:9000"
     expose:
       - 9000
     # Extra args for debugging: --inspect, --debug-brk
@@ -25,34 +17,33 @@ services:
       - ./build/server:/app/server
       - ./build/clients:/app/clients
       - ./src/web:/app/web
-      - local-storage:/app/ccc-local-storage
+      - local-storage:/app/local-storage
       - ./package.json:/app/package.json
       - ./node_modules_docker:/app/node_modules
     environment:
       - PORT=9000
-      - STORAGE_HTTP_PREFIX=http://ccc.local
+      - STORAGE_HTTP_PREFIX=http://dcc.local
       - REDIS_HOST=redis
-      - VIRTUAL_HOST=ccc.local
+      - VIRTUAL_HOST=dcc.local
       - LOG_LEVEL=debug
-      - WORKER_STATUS_CHECK_INTERVAL_SECONDS=20
       - DISABLE_REQUEST_LOGS=true
       - DISABLE_WORKER=false
     networks:
       - dcc
     labels:
-      ccc.type: "server"
-      ccc.origin: "docker-compose"
+      dcc.type: "server"
+      dcc.origin: "docker-compose"
 
   # Run the functional and scaling tests in a separate container
-  ccc.tests:
+  dcc.tests:
     image: dionjwa/haxe-watch:v0.15.0
     working_dir: /app
     # Switch these when developing locally
-    command: ["nodemon", "-L", "--watch", "build/test", "build/test/docker-cloud-compute-tester.js"]
+    command: ["nodemon", "-L", "--watch", "build/test", "--watch", "build/server", "build/test/docker-cloud-compute-tester.js"]
     # command: ["node", "build/test/docker-cloud-compute-tester.js"]
     environment:
-      - CCC=ccc.local
-      - CCC_SCALING=ccc-scaling-server:4015
+      - DCC=dcc.local
+      - DCC_SCALING=dcc-scaling-server:4015
       - LOG_LEVEL=debug
       - REDIS_HOST=redis
       - TEST=${TEST}
@@ -64,9 +55,9 @@ services:
     networks:
       - dcc
     depends_on:
-      - ccc.local
+      - dcc.local
       - redis
-      - ccc-scaling-server
+      - dcc-scaling-server
 
   redis:
     cpu_shares: 256
@@ -79,13 +70,13 @@ services:
       - dcc
     volumes:
       - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
-    # logging:
-    #   driver: none
+    logging:
+      driver: none
 
   # Replicates (mocks) e.g. AWS AutoScalingGroups, by creating and destroying
   # workers based on the desired capacity.
   # Also used to test worker failure
-  ccc-scaling-server:
+  dcc-scaling-server:
     cpu_shares: 512
     image: dionjwa/haxe-watch:v0.15.0
     command: ["nodemon", "local-scaling-server/docker-cloud-compute-scaling-server.js"]
@@ -97,7 +88,7 @@ services:
     environment:
       - PORT=4015
       - REDIS_HOST=redis
-      - CCC=http://ccc.local
+      - DCC=http://dcc.local
       - LOG_LEVEL=warn
     networks:
       - dcc
@@ -105,21 +96,23 @@ services:
       - "4015:4015"
     depends_on:
       - redis
-      - ccc.local
+      - dcc.local
 
   # The internal scaling service (mocks e.g. an AWS autoscaling group)
   # creates and destroys workers dynamically. This container detects
   # new workers and modifies the nginx config to reverse proxy the
   # workers a single API endpoint can be used.
-  ccc.local:
+  dcc.local:
     image: jwilder/nginx-proxy
     ports:
       - "127.0.0.1:8180:80"
+    networks:
+      - dcc
     environment:
-      - DEFAULT_HOST=ccc.local
+      - DEFAULT_HOST=dcc.local
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./etc/nginx/ccc.local.conf:/etc/nginx/vhost.d/ccc.local
+      - ./etc/nginx/dcc.local.conf:/etc/nginx/vhost.d/dcc.local
       - ./etc/nginx/proxy.conf:/etc/nginx/proxy.conf
     depends_on:
       - server

@@ -11,18 +11,8 @@ class TestMetaframe
 	@timeout(2000)
 	public function testMetapage() :Promise<Bool>
 	{
-		var url = 'http://${ServerTesterConfig.CCC}/metaframe/';
+		var url = 'http://${ServerTesterConfig.DCC}/metaframe/';
 		trace('url=${url}');
-		return RequestPromises.get(url)
-			.then(function(result) {
-				return true;
-			});
-	}
-
-	@timeout(2000)
-	public function testMetapageLibs() :Promise<Bool>
-	{
-		var url = 'http://${ServerTesterConfig.CCC}/metaframe/libs.js';
 		return RequestPromises.get(url)
 			.then(function(result) {
 				return true;
@@ -32,7 +22,7 @@ class TestMetaframe
 	@timeout(2000)
 	public function testMetapageClientPackage() :Promise<Bool>
 	{
-		var url = 'http://${ServerTesterConfig.CCC}/metaframe/index.js';
+		var url = 'http://${ServerTesterConfig.DCC}/metaframe/index.js';
 		return RequestPromises.get(url)
 			.then(function(result) {
 				return true;

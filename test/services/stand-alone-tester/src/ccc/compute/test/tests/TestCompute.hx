@@ -53,7 +53,7 @@ class TestCompute extends ServerAPITestBase
 
 		var inputUrl :DataBlob = {
 			source: DataSource.InputUrl,
-			value: 'http://${ServerTesterConfig.CCC}/mirrorfile/$inputValue3',
+			value: 'http://${ServerTesterConfig.DCC}/mirrorfile/$inputValue3',
 			name: inputName3
 		}
 

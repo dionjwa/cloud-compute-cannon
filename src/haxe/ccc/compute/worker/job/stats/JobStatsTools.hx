@@ -41,7 +41,11 @@ class JobStatsTools
 
 	public static var SNIPPET_LOAD_CURRENT_JOB_STATS =
 	'
-	local jobstats = cmsgpack.unpack(redis.call("HGET", "${REDIS_KEY_HASH_JOB_STATS}", jobId))
+	local jobStatsMsgpacked = redis.call("HGET", "${REDIS_KEY_HASH_JOB_STATS}", jobId)
+	if jobStatsMsgpacked == nil then
+		return {err="${RedisError.NoJobFound}", jobId=jobId}
+	end
+	local jobstats = cmsgpack.unpack(jobStatsMsgpacked)
 	';
 
 	static var SNIPPET_LOAD_CURRENT_JOB_ATTEMPT =

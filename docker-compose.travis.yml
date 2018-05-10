@@ -1,11 +1,11 @@
-version: '2'
+version: '2.3'
 
 volumes:
   local-storage:
     driver: local
 
 networks:
-  dcc:
+  local:
     driver: bridge
 
 services:
@@ -13,43 +13,43 @@ services:
   dcc:
     image: "docker-cloud-compute:${VERSION}"
     ports:
-      - "9000:9000"
+      - "9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       #This volume is needed for running computes locally
       - local-storage:/app/local-storage
     command: ["node", "server/docker-cloud-compute-server.js"]
     depends_on:
-      - redis1
+      - redis
     environment:
       - PORT=9000
-      # - STORAGE_HTTP_PREFIX=http://ccc.local
-      - REDIS_HOST=redis1
+      - REDIS_HOST=redis
       - LOG_LEVEL=info
       - HOST_PWD=${PWD}
+      - DISABLE_REQUEST_LOGS=true
     networks:
-      - dcc
+      - local
 
   # Run the functional and scaling tests in a separate container
-  ccc.tests:
+  dcc.tests:
     image: "docker-cloud-compute:${VERSION}"
     working_dir: /app
     command: ["node",  "test/docker-cloud-compute-tester.js"]
     environment:
-      - CCC=dcc
+      - DCC=dcc:9000
       - LOG_LEVEL=debug
-      - REDIS_HOST=redis1
+      - REDIS_HOST=redis
       - TRAVIS_REPO_SLUG=${TRAVIS_REPO_SLUG}
       - TEST=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - dcc
+      - local
     depends_on:
-      - redis1
+      - redis
       - dcc
 
-  redis1:
+  redis:
     image: redis:3.2.0-alpine
     networks:
-      - dcc
+      - local

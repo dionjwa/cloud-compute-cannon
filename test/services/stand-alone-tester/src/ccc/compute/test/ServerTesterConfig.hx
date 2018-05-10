@@ -4,10 +4,10 @@ package ccc.compute.test;
 class ServerTesterConfig
 {
 	@NodeProcessVar
-	public static var CCC :String = 'ccc.local';
+	public static var DCC :String = 'dcc.local';
 
 	@NodeProcessVar
-	public static var CCC_SCALING :String = 'ccc-scaling-server:4015';
+	public static var DCC_SCALING :String = 'dcc-scaling-server:4015';
 
 	@NodeProcessVar
 	public static var LOG_LEVEL :String = 'debug';
@@ -38,7 +38,7 @@ class ServerTesterConfig
 	public static function toJson() :Dynamic
 	{
 		return {
-			'CCC': CCC,
+			'DCC': DCC,
 			'LOG_LEVEL': LOG_LEVEL,
 			'REDIS_HOST': REDIS_HOST,
 			'REDIS_PORT': REDIS_PORT,

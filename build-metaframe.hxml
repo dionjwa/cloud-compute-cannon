@@ -1,1 +1,14 @@
-clients/metaframe/build.hxml
+# This has to be in the root directory for the webpack haxe integration to work
+clients/shared/hxml/git-libs-client.hxml
+clients/shared/hxml/react.hxml
+
+-lib haxe-loader:0.7.3
+
+-lib json-rpc:1.4.3
+-lib abstracts-core:0.1.1
+
+-cp clients/shared/src
+-cp clients/metaframe/src
+
+-js build/clients/metaframe/index.js
+-main Main

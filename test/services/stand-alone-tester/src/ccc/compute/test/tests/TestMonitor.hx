@@ -8,9 +8,9 @@ class TestMonitor
 	extends haxe.unit.async.PromiseTest
 {
 	@timeout(2000)
-	public function testCCCServerReachable() :Promise<Bool>
+	public function testDCCServerReachable() :Promise<Bool>
 	{
-		var url = 'http://${ServerTesterConfig.CCC}/version';
+		var url = 'http://${ServerTesterConfig.DCC}/version';
 		return RequestPromises.get(url)
 			.then(function(result) {
 				return true;
@@ -121,7 +121,7 @@ class TestMonitor
 
 	public static function getMonitorResult(?within :Null<Int>, ?timeout :Null<Int>) :Promise<ServiceMonitorRequestResult>
 	{
-		var url = 'http://${ServerTesterConfig.CCC}${ServiceMonitorRequest.ROUTE_MONITOR}';
+		var url = 'http://${ServerTesterConfig.DCC}${ServiceMonitorRequest.ROUTE_MONITOR}';
 		if (within != null) {
 			url = '$url?within=$within';
 		}
@@ -138,7 +138,7 @@ class TestMonitor
 
 	public static function getMonitorJobCount() :Promise<Int>
 	{
-		var url = 'http://${ServerTesterConfig.CCC}${ServiceMonitorRequest.ROUTE_MONITOR_JOB_COUNT}';
+		var url = 'http://${ServerTesterConfig.DCC}${ServiceMonitorRequest.ROUTE_MONITOR_JOB_COUNT}';
 		return RequestPromises.get(url)
 			.then(Json.parse)
 			.then(function(json :{count :Int}) {

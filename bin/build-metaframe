@@ -7,6 +7,6 @@ set -e
 rm -rf build/clients/metaframe
 mkdir -p build/clients
 cp -r clients/metaframe/web build/clients/metaframe
-haxe clients/metaframe/build.hxml
+haxe build-metaframe.hxml
 cd clients/metaframe
 npm run libs
