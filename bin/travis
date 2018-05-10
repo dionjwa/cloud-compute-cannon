@@ -29,14 +29,14 @@ echo "TRAVIS_TAG=$TRAVIS_TAG"
 # Sanity check on versions
 ./bin/version-check
 
-#First build locally the docker images for the minimal CCC server
+#First build locally the docker images for the minimal DCC server
 bin/build-docker-images
 
 # Only run the tests on PRs
 if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/docker-cloud-compute" ];
 	then
 		echo "Running tests"
-		TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG TRAVIS=1 PWD=$PWD VERSION=$GIT_TAG docker-compose -f docker-compose.travis.yml run --rm ccc.tests
+		TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG TRAVIS=1 PWD=$PWD VERSION=$GIT_TAG docker-compose -f docker-compose.travis.yml run --rm dcc.tests
 fi
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_REPO_SLUG" == "dionjwa/docker-cloud-compute" ] && [ "v$NPM_VERSION" == "$TRAVIS_TAG" ];
