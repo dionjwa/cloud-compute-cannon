@@ -20,10 +20,11 @@ class PlayPauseButton
 
 	override public function render()
 	{
+		var raised = true;
+		// raised={raised}
 		return jsx('
 			<Button
 				ref="iconButton"
-				raised={true}
 				onClick={onClick}
 			>
 				<Icon>${this.props.paused ? "pause" : "play_arrow"}</Icon>

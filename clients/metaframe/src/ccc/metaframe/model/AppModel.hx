@@ -1,7 +1,8 @@
 package ccc.metaframe.model;
 
 import metapage.*;
-// import metapage.PipeUpdateBlob;
+import js.metapage.v1.client.*;
+import js.metapage.v1.*;
 
 import redux.Redux;
 
@@ -40,7 +41,7 @@ class AppModel
 		_metaframe.onInputs(onInputs);
 	}
 
-	function onInputs(inputs :Array<PipeUpdateClientV1>)
+	function onInputs(inputs :MetaframeInputMap)
 	{
 		var jobRequest :JobRequestUnified = {
 			Inputs: [],
@@ -64,8 +65,9 @@ class AppModel
 
 		//Massage inputs
 		if (inputs != null) {
-			for (input in inputs) {
-				switch(input.name) {
+			for (inputName in inputs.keys()) {
+				var input = inputs[inputName];
+				switch('$inputName') {
 					case 'docker:ImagePullOptions':
 						if (input.value != null && input.value != '') {
 							jobRequest.ImagePullOptions = maybeParseJson(input.value);
@@ -104,11 +106,13 @@ class AppModel
 						}
 					case 'docker:command':
 						if (input.value != null && input.value != '') {
+							trace('input.value=${input.value}');
+							trace('maybeParseJson(input.value)=${maybeParseJson(input.value)}');
 							jobRequest.CreateContainerOptions.Cmd = maybeParseJson(input.value);
 						}
 					default:
 						jobRequest.Inputs.push({
-							name: input.name,
+							name: inputName,
 							value: input.value,
 							encoding: cast input.encoding
 						});
@@ -200,31 +204,18 @@ class AppModel
 							case SetJobResults(result):
 								//Set the metaframe outputs
 								if (result != null) {
-									var outputs :Array<PipeUpdateBlob> = [];
-									outputs.push({
-										name: 'docker:exitCode',
-										value: result.exitCode,
-									});
-									outputs.push({
-										name: 'docker:stderr',
-										value: result.stderr != null ? result.stderr.join('') : '',
-									});
-									outputs.push({
-										name: 'docker:stdout',
-										value: result.stdout != null ? result.stdout.join('') : '',
-									});
-									outputs.push({
-										name: 'docker:error',
-										value: result.error,
-									});
+									var outputs :MetaframeInputMap = {};
+									outputs[new MetaframePipeId('docker:exitCode')] = { value: result.exitCode };
+									outputs[new MetaframePipeId('docker:stderr')] = { value: result.stderr != null ? result.stderr.join('') : '' };
+									outputs[new MetaframePipeId('docker:stdout')] = { value: result.stdout != null ? result.stdout.join('') : '' };
+									outputs[new MetaframePipeId('docker:error')] = { value: result.error };
 									if (result.outputs != null) {
 										for (o in result.outputs) {
-											outputs.push({
-												name: cast o.name,
+											outputs[new MetaframePipeId(cast o.name)] = {
 												value: cast o.value,
 												encoding: cast o.encoding,
 												source: cast o.source,
-											});
+											};
 										}
 									}
 

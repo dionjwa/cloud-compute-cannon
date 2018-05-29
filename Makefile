@@ -117,7 +117,7 @@ set-build-server:
 
 .PHONY: set-build-metaframe
 set-build-metaframe:
-	rm -f build.hxml && ln -s clients/metaframe/build.hxml build.hxml
+	rm -f build.hxml && ln -s build-metaframe.hxml build.hxml
 
 .PHONY: set-build-test
 set-build-test:

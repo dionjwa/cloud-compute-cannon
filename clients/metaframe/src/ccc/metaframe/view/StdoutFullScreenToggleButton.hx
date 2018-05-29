@@ -39,6 +39,8 @@ class StdoutFullScreenToggleButton
 				backgroundColor: "black",
 			},
 		}
+		var raised = true;
+		//raised={raised}
 		return jsx('
 			<div className="flex-child">
 				<Dialog
@@ -53,7 +55,7 @@ class StdoutFullScreenToggleButton
 						<StdoutText text={text} isStdErr={isStdErr} />
 					</div>
 				</Dialog>
-				 <Button raised={true} onClick={this.handleOpen} >
+				 <Button onClick={this.handleOpen} >
 				 	$buttonText
 				 </Button>
 			</div>
