@@ -87,7 +87,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"jsonrpc\": \"2.0\",\n\t\"id\": \"_\",\n\t\"method\": \"run\",\n\t\"params\": {\n\t\t\"job\": {\n\t\t  \"wait\": true,\n\t\t  \"image\": \"busybox:latest\",\n\t\t  \"command\": [\n\t\t    \"ls\",\n\t\t    \"/inputs\"\n\t\t  ],\n\t\t  \"inputs\": [\n\t\t  \t{\n\t\t  \t\t\"name\": \"input.json\",\n\t\t  \t\t\"value\": \"foo\"\n\t\t  \t}\n\t\t  ],\n\t\t  \"inputsPath\": \"/inputs\",\n\t\t  \"parameters\": {\n\t\t    \"maxDuration\": 600,\n\t\t    \"cpus\": 1\n\t\t  }\n\t\t}\n\t}\n}"
+					"raw": "{\n\t\"jsonrpc\": \"2.0\",\n\t\"id\": \"_\",\n\t\"method\": \"run\",\n\t\"params\": {\n\t\t\"job\": {\n\t\t  \"wait\": true,\n\t\t  \"image\": \"busybox:latest\",\n\t\t  \"command\": [\n\t\t    \"ls\",\n\t\t    \"/inputs\"\n\t\t  ],\n\t\t  \"inputs\": [\n\t\t  \t{\n\t\t  \t\t\"name\": \"input.json\",\n\t\t  \t\t\"value\": \"foo\"\n\t\t  \t}\n\t\t  ],\n\t\t  \"inputsPath\": \"/inputs\",\n\t\t  \"parameters\": {\n\t\t    \"maxDuration\": 600,\n\t\t    \"cpus\": 1\n\t\t  },\n\t\t  \"callback\": {\n\t\t    \"url\": \"http://url/\",\n\t\t    \"data\": {\"your\": \"data\"},\n\t\t    \"retries\": 3\n\t\t  }\n\t\t}\n\t}\n}"
 				},
 				"description": "Adds a persisted job to the queue. "
 			},

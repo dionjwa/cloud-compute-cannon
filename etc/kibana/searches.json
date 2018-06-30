@@ -1,9 +1,9 @@
 [
   {
-    "_id": "CCC-jobs-restarted-7-days",
+    "_id": "DCC-jobs-restarted-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC jobs restarted 7 days",
+      "title": "DCC jobs restarted 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -15,15 +15,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"jobevent:RESTARTED\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"jobevent:RESTARTED\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-jobs-finished-7-days",
+    "_id": "DCC-jobs-finished-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC jobs finished 7 days",
+      "title": "DCC jobs finished 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -35,15 +35,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"query\":{\"query_string\":{\"query\":\"jobevent:FINISHED\",\"analyze_wildcard\":true}},\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"query\":{\"query_string\":{\"query\":\"jobevent:FINISHED\",\"analyze_wildcard\":true}},\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[]}"
       }
     }
   },
   {
-    "_id": "CCC-worker-DesiredCapacity-7-days",
+    "_id": "DCC-worker-DesiredCapacity-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC worker DesiredCapacity 7 days",
+      "title": "DCC worker DesiredCapacity 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -55,15 +55,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"workerevent:SET_WORKER_COUNT AND DesiredCapacity:*\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"workerevent:SET_WORKER_COUNT AND DesiredCapacity:*\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-worker-terminated-7-days",
+    "_id": "DCC-worker-terminated-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC worker terminated 7 days",
+      "title": "DCC worker terminated 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -75,15 +75,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"workerevent:TERMINATE\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"workerevent:TERMINATE\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-jobs-errors-7-days",
+    "_id": "DCC-jobs-errors-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC jobs errors 7 days",
+      "title": "DCC jobs errors 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -95,15 +95,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"jobevent:ERROR\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"jobevent:ERROR\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-workerevents-7-days",
+    "_id": "DCC-workerevents-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC workerevents 7 days",
+      "title": "DCC workerevents 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -115,15 +115,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"workerevent:*\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"workerevent:*\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-serverevents-7-days",
+    "_id": "DCC-serverevents-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC serverevents 7 days",
+      "title": "DCC serverevents 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -135,15 +135,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"serverevent:*\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"serverevent:*\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-events-7-days",
+    "_id": "DCC-events-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC events 7 days",
+      "title": "DCC events 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -155,15 +155,15 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"tag:dockercloudcompute\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"tag:dockercloudcompute\",\"analyze_wildcard\":true}}}"
       }
     }
   },
   {
-    "_id": "CCC-jobevents-7-days",
+    "_id": "DCC-jobevents-7-days",
     "_type": "search",
     "_source": {
-      "title": "CCC jobevents 7 days",
+      "title": "DCC jobevents 7 days",
       "description": "",
       "hits": 0,
       "columns": [
@@ -175,7 +175,7 @@
       ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"logstash-*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"jobevent:*\",\"analyze_wildcard\":true}}}"
+        "searchSourceJSON": "{\"index\":\"fluent*\",\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"fragment_size\":2147483647},\"filter\":[],\"query\":{\"query_string\":{\"query\":\"jobevent:*\",\"analyze_wildcard\":true}}}"
       }
     }
   }

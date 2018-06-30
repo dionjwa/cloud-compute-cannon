@@ -12,6 +12,7 @@ import haxe.DynamicAccess;
 import js.Node;
 import js.npm.redis.RedisClient;
 import js.npm.Redis;
+import js.npm.prettyms.PrettyMs;
 
 import promhx.Promise;
 import promhx.deferred.DeferredPromise;

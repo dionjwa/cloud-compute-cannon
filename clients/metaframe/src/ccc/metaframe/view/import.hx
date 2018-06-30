@@ -5,7 +5,6 @@
 	import redux.IReducer;
 	import redux.StoreMethods;
 
-	import redux.react.IConnectedComponent;
-
-	import js.npm.materialui.MaterialUI;
+	// import js.npm.materialui.MaterialUICore;
+	import js.npm.bulma.Bulma;
 #end

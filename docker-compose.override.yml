@@ -4,7 +4,6 @@ services:
 
   server:
     image: dionjwa/haxe-watch:v0.15.0
-    cpu_shares: 1024
     expose:
       - 9000
     # Extra args for debugging: --inspect, --debug-brk
@@ -17,7 +16,7 @@ services:
       - ./build/server:/app/server
       - ./build/clients:/app/clients
       - ./src/web:/app/web
-      - local-storage:/app/local-storage
+      - local-storage:/jobs
       - ./package.json:/app/package.json
       - ./node_modules_docker:/app/node_modules
     environment:
@@ -25,14 +24,44 @@ services:
       - STORAGE_HTTP_PREFIX=http://dcc.local
       - REDIS_HOST=redis
       - VIRTUAL_HOST=dcc.local
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
       - DISABLE_REQUEST_LOGS=true
-      - DISABLE_WORKER=false
-    networks:
-      - dcc
+      # Disable the worker mode of the server, so it only processes
+      # requests and puts jobs on the queue, but does not do any
+      # docker job processing.
+      - DISABLE_WORKER=true
+      - DISABLE_NVIDIA_RUNTIME=true
     labels:
       dcc.type: "server"
       dcc.origin: "docker-compose"
+
+  worker1cpu:
+    extends:
+      file: docker-compose.extends.yml
+      service: worker
+    depends_on:
+      - server
+    environment:
+      - DISABLE_WORKER=false
+      - GPUS=0
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    labels:
+      dcc.type: "worker"
+
+  # worker1gpu:
+  #   extends:
+  #     file: docker-compose.extends.yml
+  #     service: worker
+  #   depends_on:
+  #     - server
+  #   environment:
+  #     - DISABLE_WORKER=false
+  #     - GPUS=1
+  #     - DISABLE_NVIDIA_RUNTIME=true
+  #     - LOG_LEVEL=${LOG_LEVEL:-info}
+  #   labels:
+  #     dcc.type: "worker"
+  #     gpu: "1"
 
   # Run the functional and scaling tests in a separate container
   dcc.tests:
@@ -40,63 +69,54 @@ services:
     working_dir: /app
     # Switch these when developing locally
     command: ["nodemon", "-L", "--watch", "build/test", "--watch", "build/server", "build/test/docker-cloud-compute-tester.js"]
-    # command: ["node", "build/test/docker-cloud-compute-tester.js"]
+    expose:
+      - 9003  # for callback test
     environment:
-      - DCC=dcc.local
+      - DCC=server:9000
+      - DCC_WORKER1CPU=worker1cpu:9000
+      - DCC_WORKER1GPU=worker1gpu:9000
       - DCC_SCALING=dcc-scaling-server:4015
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_HOST=redis
-      - TEST=${TEST}
-      - TEST_SCALING=${TEST_SCALING}
+      - TEST=${TEST:-true}
+      - TEST_SCALING=${TEST_SCALING:-false}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./build:/app/build
       - ./node_modules_docker:/app/node_modules
+      # For server/worker split tests
+      - local-storage:/jobs
     networks:
       - dcc
     depends_on:
       - dcc.local
       - redis
-      - dcc-scaling-server
-
-  redis:
-    cpu_shares: 256
-    restart: always
-    image: redis:3.2.0-alpine
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6379"
-    networks:
-      - dcc
-    volumes:
-      - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
-    logging:
-      driver: none
 
   # Replicates (mocks) e.g. AWS AutoScalingGroups, by creating and destroying
   # workers based on the desired capacity.
   # Also used to test worker failure
-  dcc-scaling-server:
-    cpu_shares: 512
-    image: dionjwa/haxe-watch:v0.15.0
-    command: ["nodemon", "local-scaling-server/docker-cloud-compute-scaling-server.js"]
-    working_dir: /app
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./build/local-scaling-server:/app/local-scaling-server
-      - ./node_modules_docker:/app/node_modules
-    environment:
-      - PORT=4015
-      - REDIS_HOST=redis
-      - DCC=http://dcc.local
-      - LOG_LEVEL=warn
-    networks:
-      - dcc
-    ports:
-      - "4015:4015"
-    depends_on:
-      - redis
-      - dcc.local
+  # dcc-scaling-server:
+  #   cpu_shares: 512
+  #   image: dionjwa/haxe-watch:v0.15.0
+  #   networks:
+  #     - dcc
+  #   command: ["nodemon", "-L", "--watch", "build/test", "--watch", "build/server", "build/local-scaling-server/docker-cloud-compute-scaling-server.js"]
+  #   working_dir: /app
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - ./build:/app/build
+  #     - ./node_modules_docker:/app/node_modules
+  #   environment:
+  #     - PORT=4015
+  #     - REDIS_HOST=redis
+  #     - DCC=http://dcc.local
+  #     - LOG_LEVEL=debug
+  #   ports:
+  #     - "4015:4015"
+  #   depends_on:
+  #     - redis
+  #     - server
+  #     - dcc.local
 
   # The internal scaling service (mocks e.g. an AWS autoscaling group)
   # creates and destroys workers dynamically. This container detects
@@ -105,7 +125,7 @@ services:
   dcc.local:
     image: jwilder/nginx-proxy
     ports:
-      - "127.0.0.1:8180:80"
+      - "127.0.0.1:${PORT_API:-8180}:80"
     networks:
       - dcc
     environment:
@@ -118,3 +138,16 @@ services:
       - server
     logging:
       driver: none
+
+
+  client-dev-server:
+    image: dionjwa/haxe-watch:v0.15.0
+    command: node_modules/.bin/webpack-dev-server --mode development --watch
+    ports:
+        - "${CLIENT_DEV_SERVER_PORT:-9091}:9091"
+    working_dir: /app
+    volumes:
+        - .:/app
+        - ./node_modules_docker:/app/node_modules
+    networks:
+      - dcc

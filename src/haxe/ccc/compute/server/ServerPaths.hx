@@ -30,7 +30,7 @@ class ServerPaths
 		var app = Express.GetApplication();
 		injector.map(Application).toValue(app);
 
-		if (!ServerConfig.DISABLE_REQUEST_LOGS) {
+		if (ServerConfig.ENABLE_REQUEST_LOGS) {
 			app.use(Node.require('express-bunyan-logger')());
 		}
 
@@ -39,7 +39,6 @@ class ServerPaths
 
 		app.use(cast js.npm.bodyparser.BodyParser.json({limit: '250mb'}));
 
-		//Serve metapages dashboards
 		var indexPage = new haxe.Template(sys.io.File.getContent('./web/index-template.html')).execute(ServerConfig);
 		app.get('/', function(req, res) {
 			res.send(indexPage);
@@ -49,16 +48,9 @@ class ServerPaths
 			res.send(indexPage);
 		});
 
-		if (!ServerConfig.DISABLE_REQUEST_LOGS) {
-			app.use(Node.require('bunyan-request')({
-				logger: ccc.compute.shared.Logger.log,
-				headerName: 'x-request-id'
-			}));
-		}
-
 		app.get('/version', function(req, res) {
 			var versionBlob = ServerCommands.version();
-			res.send(versionBlob.git);
+			res.send(versionBlob.VERSION != null ? versionBlob.VERSION : versionBlob.git);
 		});
 
 		/**
@@ -87,90 +79,113 @@ class ServerPaths
 		}
 
 		app.get('/healthcheck', function(req, res :Response) {
-			var workerManager = injector.getValue(WorkerStateManager);
-			workerManager.registerHealthStatus()
-				.then(function(_) {
-					res.json(cast {success:true});
-				}).catchError(function(err) {
-					res.status(500).json(cast {error:err, success:false});
-				});
+			if (injector.getStatus() == ServerStartupState.Ready) {
+				res.status(200).end();
+			} else {
+				res.status(503).end();
+			}
 		});
 
 		app.get('/test', function(req, res) {
 			test(req, res);
 		});
 
-		app.get('/test/cpu/:count/:duration', function(req, res) {
-			// trace(req.params);
+		app.get('/test/cpu/:count/:duration', function(req, res :Response) {
 			var count = Std.parseInt(req.params.count);
 			var duration = Std.parseInt(req.params.duration);
 
-			for (i in 0...count) {
-				var job: BasicBatchProcessRequest = {
-					inputs: [],
-					image: DOCKER_IMAGE_DEFAULT,
-					parameters: {
-						maxDuration: duration + 10,
-						cpus: 1
-					},
-					cmd: ["sleep", '${duration}'],
-					meta: {
-						name: 'waittestjob'
-					},
-					appendStdOut: true,
-					appendStdErr: true,
-				}
+			var routes :RpcRoutes = injector.getValue(RpcRoutes);
 
-				ServiceBatchComputeTools.runComputeJobRequest(injector, job);
+			var jobRequest :BasicBatchProcessRequest = {
+				inputs: [],
+				image: DOCKER_IMAGE_DEFAULT,
+				parameters: {
+					maxDuration: duration + 10,
+					cpus: 1
+				},
+				cmd: ["sleep", '${duration}'],
+				meta: {
+					name: 'waittestjob'
+				},
+				turbo: true,
+				wait: false,
 			}
 
-			res.json(cast {success:true});
+			var promises = [];
+			for (i in 0...count) {
+				promises.push(routes.submitJobJson(jobRequest));
+			}
+
+			Promise.whenAll(promises)
+				.then(function(_) {
+					res.json(cast {success:true});
+				})
+				.catchError(function(err :Dynamic) {
+					res.status(500).json(err);
+				});
 		});
 
-		app.get('/test/gpu/:count/:duration', function(req, res) {
-			trace(req.params);
+		app.get('/test/gpu/:count/:duration', function(req, res :Response) {
 			var count = Std.parseInt(req.params.count);
 			var duration = Std.parseInt(req.params.duration);
 
-			for (i in 0...count) {
-				var job: BasicBatchProcessRequest = {
-					inputs: [],
-					image: DOCKER_IMAGE_DEFAULT,
-					parameters: {
-						maxDuration: duration + 10,
-						gpu: true
-					},
-					cmd: ["sleep", '${duration}'],
-					meta: {
-						name: 'waittestjob'
-					},
-					appendStdOut: true,
-					appendStdErr: true,
-				}
+			var routes :RpcRoutes = injector.getValue(RpcRoutes);
 
-				ServiceBatchComputeTools.runComputeJobRequest(injector, job);
+			var jobRequest :BasicBatchProcessRequest = {
+				inputs: [],
+				image: 'nvidia/cuda',
+				parameters: {
+					maxDuration: duration + 10,
+					gpu: 1,
+				},
+				cmd: ['/bin/sh', '-c', 'nvidia-smi && sleep ${duration}'],
+				meta: {
+					name: 'waittestjob'
+				},
+				turbo: true,
+				wait: false,
 			}
 
-			res.json(cast {success:true});
+			if (ServerConfig.DISABLE_NVIDIA_RUNTIME) {
+				jobRequest.image = DOCKER_IMAGE_DEFAULT;
+				jobRequest.cmd = ["echo", "'nvidia disabled'"];
+			}
+
+			var promises = [];
+			for (i in 0...count) {
+				promises.push(routes.submitJobJson(jobRequest));
+			}
+
+			Promise.whenAll(promises)
+				.then(function(_) {
+					res.json(cast {success:true});
+				})
+				.catchError(function(err :Dynamic) {
+					res.status(500).json(err);
+				});
 		});
 
 		app.get('/test/gpu', function(req, res :Response) {
 
-			var request: BasicBatchProcessRequest = {
-				parameters: {
-					gpu: true,
-					maxDuration: 1000
-				},
+			var routes :RpcRoutes = injector.getValue(RpcRoutes);
+
+			var jobRequest :BatchProcessRequestTurboV2 = {
+				inputs: [],
 				image: 'nvidia/cuda',
-				cmd: ["nvidia-smi"],
-				appendStdOut: true,
-				appendStdErr: true,
-				wait: true,
-				turbo: true,
-			};
-			ClientJSTools.postJob('localhost:${ServerConfig.PORT}', request)
+				parameters: {
+					maxDuration: 100,
+					gpu: 1,
+				},
+				command: ['nvidia-smi'],
+			}
+
+			if (ServerConfig.DISABLE_NVIDIA_RUNTIME) {
+				jobRequest.image = DOCKER_IMAGE_DEFAULT;
+				jobRequest.command = ["echo", "'nvidia disabled'"];
+			}
+
+			routes.submitTurboJobJsonV2(jobRequest)
 				.then(function(job) {
-					traceYellow('$job');
 					res.json(job);
 				})
 				.catchError(function(err :Dynamic) {
@@ -206,11 +221,9 @@ class ServerPaths
 		//Check if server is ready
 		app.get(SERVER_PATH_READY, cast function(req, res) {
 			if (injector.getStatus() == ServerStartupState.Ready) {
-				Log.debug('${SERVER_PATH_READY}=YES');
 				res.status(200).end();
 			} else {
-				Log.debug('${SERVER_PATH_READY}=NO');
-				res.status(500).end();
+				res.status(503).end();
 			}
 		});
 

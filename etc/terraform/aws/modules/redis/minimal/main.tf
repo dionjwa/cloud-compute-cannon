@@ -1,24 +1,25 @@
-
-resource "aws_instance" "terraform_ccc_redis" {
+resource "aws_instance" "dcc_redis" {
   ami = "${lookup(var.amis, var.region)}"
   instance_type = "${var.instance_type}"
   subnet_id = "${var.subnet_id}"
-  vpc_security_group_ids = ["${aws_security_group.terraform_ccc_redis.id}"]
+  vpc_security_group_ids = ["${aws_security_group.dcc_redis.id}"]
   monitoring  = true
-  associate_public_ip_address = true
 
   # Examine /var/log/cloud-init-output.log for errors
-  user_data = "${file("${path.module}/init-redis-instance.sh")}"
+   user_data =  <<EOF
+#!/bin/bash
+docker run --restart=always -p 6379:6379 --detach redis:3.2.0-alpine
+EOF
 
   key_name = "${var.key_name}"
 
   tags {
-    Name = "terraform-ccc-redis-micro"
+    Name = "${var.name-prefix}dcc-redis-micro"
   }
 }
 
-resource "aws_security_group" "terraform_ccc_redis" {
-  description = "Restrict redis access to servers and workers"
+resource "aws_security_group" "dcc_redis" {
+  description = "${var.name-prefix} Restrict redis access to servers and workers"
   vpc_id      = "${var.vpc_id}"
 
   ingress {
@@ -42,10 +43,11 @@ resource "aws_security_group" "terraform_ccc_redis" {
     cidr_blocks       = ["0.0.0.0/0"]
   }
 
+  # Terraform removes this default rule
   egress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }

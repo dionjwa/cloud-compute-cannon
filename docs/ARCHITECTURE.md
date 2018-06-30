@@ -53,8 +53,78 @@ A worker consists of simply a machine with docker installed. The worker process 
 
 ## 6. Scaling lambda
 
-Because the Autoscaling group control of scaling lacks the ability to look at the redis queue, an AWS lambda periodically checks the redis queue, and adjust workers up or down depending on various factors (queue size/state, time workers have been up, worker health).
+Because the Autoscaling group control of scaling lacks the ability to look at the redis queue, an AWS lambda periodically checks the redis queue, and adjust workers up or down depending on various factors (queue size/state, time workers have been up, worker health, last time scaled down).
 
 The lambda also checks the worker health, by checking the redis db for a key that matches the worker. Workers periodically update this key with their health status. If the key is missing, or the value is not 'HEALTHY' then the worker is terminated. If the autoscaling group (ASG) minimum is not fulfilled, the ASG will create a fresh worker.
 
 Scale up checks occur frequently (1/minute) so the stack is responsive, scale down occurs less frequently (every 15/30m). Both are configurable.
+
+## GPU support
+
+DCC has support for running jobs in workers with GPUS.
+
+**Prerequisites:**
+
+Terraform:
+
+ - terraform module `etc/terraform/aws/modules/asg` variables:
+   - `workers_gpu_max` must be > 0.
+   - `instance_type_gpu` must be an appropriate instance (the default is ok). WARNING: see limitations below about using instances with GPUs > 1.
+   - `region` must be one that supports GPU instances (not all do)
+   - `server_version` must be `>= 0.5.0`.
+
+Limitations:
+
+ - Workers cannot currently determine how many GPUs they have, and this value is currently hard-coded to be 1. This is a relatively easy parameter to address via mapping AWS instance types to GPUs, however I would prefer this value be determined at startup time.
+ - Worker startup time is really slow and can be improved.
+
+**API:**
+
+Add `gpu:1` to the `parameters` field for job descriptions e.g.:
+
+```
+{
+	...
+	"image": "docker.io/busybox:latest",
+	"parameters": {
+		"gpu": 1,
+	},
+	...
+}
+```
+
+**Code:**
+
+There are two main job queues, 'cpu' and 'gpu', and a job can only be on one. When a worker connects to redis, it will process concurrent jobs from each of those queues up to the number of corresponding cpu/gpus. Apart from the labels, the queues function identically, the ingest and output the same types.
+
+Since it also requires a CPU to run a GPU job, the overall number of concurrent **CPU** jobs a GPU machine can process is CPUs - GPUs. If there are remaining CPUs, those will be used for the CPU queue, meaning a GPU machine can process from both the CPU and the GPU queue (concurrently). Reducing the CPUs for the GPU jobs may not be strictly needed, perhaps the GPU usage means the CPU is idle. TDB with CPU profiling (`Queuejobs.postInject()`).
+
+Data flow:
+
+1. A job is posted to the API, eventually the job request ends up at `QueueTools.addJobToQueue` where it is put in the cpu or gpu queue.
+2. `QueueJobs` will eventually consume the GPU job.
+3. Workers consuming a `gpu` queue will process the job exactly the same as a `cpu` job.
+4. When the job is being executed on the worker, some extra docker config is added to use the nvidia runtime:
+
+```
+if (job.parameters.gpu > 0 && !job.parameters.DISABLE_NVIDIA_DOCKER_RUNTIME && !ServerConfig.DISABLE_NVIDIA_RUNTIME) {
+	Reflect.setField(opts.HostConfig, "Runtime", "nvidia");
+}
+```
+
+
+**Testing:**
+
+There are tests to validate the correct data flow of CPU/GPU jobs going to correct workers. However actual GPU testing requires deployment to the cloud, so is less structured. There are some paths to quickly test CPU/GPU jobs (in `ServerPaths.hx`):
+
+ - `/test/cpu`
+ - `/test/cpu/<count>/<seconds-delay>`
+ - `/test/gpu`
+ - `/test/gpu/<count>/<seconds-delay>`
+
+I have also used this mxnet image for testing the GPU as written in their docs:
+
+https://github.com/apache/incubator-mxnet/tree/master/docker
+
+
+

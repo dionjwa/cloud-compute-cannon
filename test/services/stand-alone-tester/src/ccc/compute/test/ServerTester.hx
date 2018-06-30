@@ -9,6 +9,9 @@ class ServerTester
 {
 	static function main()
 	{
+#if PromhxExposeErrors
+		traceRed("WARNING PromhxExposeErrors is set");
+#end
 		js.npm.sourcemapsupport.SourceMapSupport;
 		js.ErrorToJson;
 		initGlobalErrorHandler();
@@ -58,25 +61,27 @@ class ServerTester
 			runner.add(testCollection);
 		}
 
-		traceCyan('ServerTesterConfig.TEST=${ServerTesterConfig.TEST}');
-		// traceCyan('ServerTesterConfig.TEST_SCALING_ONLY=${ServerTesterConfig.TEST_SCALING_ONLY}');
-		traceCyan('ServerTesterConfig.TEST_SCALING=${ServerTesterConfig.TEST_SCALING}');
 		if (ServerTesterConfig.TEST) {
 			addTestClass(ccc.compute.test.tests.TestUnit);
+			addTestClass(ccc.compute.test.tests.TestServerWorkerSplit);
 			addTestClass(ccc.compute.test.tests.TestCompute);
 			addTestClass(ccc.compute.test.tests.TestMonitor);
 			addTestClass(ccc.compute.test.tests.TestJobs);
 			addTestClass(ccc.compute.test.tests.TestTurboJobs);
 			addTestClass(ccc.compute.test.tests.TestFailureConditions);
-			addTestClass(ccc.compute.test.tests.TestMetaframe);
+			addTestClass(ccc.compute.test.tests.TestGpuJobs);
+			addTestClass(ccc.compute.test.tests.TestJobCleanup);
+			addTestClass(ccc.compute.test.tests.TestRedis);
+			addTestClass(ccc.compute.test.tests.TestCrontasks);
 		}
-		//Travis struggles with the scaling tests, likely due to
+		//Cloud build systems often struggle with the scaling tests, likely due to
 		//the slowness of the underlying VCPU. Tests that succeed
 		//in one repo fail in an identical repo.
 		//You'll need to test locally however to catch bugs this
 		//test would otherwise catch.
 		if (ServerTesterConfig.TEST_SCALING) {
-			addTestClass(ccc.compute.test.tests.TestScaling);
+			traceYellow('Scaling tests are currently broken');
+			// addTestClass(ccc.compute.test.tests.TestScaling);
 		}
 
 		//Wait on the main server

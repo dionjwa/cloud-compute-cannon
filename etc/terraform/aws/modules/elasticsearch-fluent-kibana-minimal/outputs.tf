@@ -1,3 +1,3 @@
-output "hostname" {
-  value = "${aws_instance.terraform_ccc_elasticsearch_stack_mini.public_ip}"
+output "private_ip" {
+  value = "${aws_instance.dcc_elasticsearch_stack_mini.private_ip}"
 }

@@ -10,10 +10,11 @@ class ScalingCommands
 	static var REDIS_KEY_SCALING_STATUS :String = '${PREFIX}status';
 	static var REDIS_KEY_WORKER_DOCKER_CONFIG :String = '${PREFIX}worker_docker_config';
 
-	static var DOCKER_LABEL_CCC_TYPE = 'ccc.type';
+	static var DOCKER_LABEL_CCC_TYPE = 'dcc.type';
+	static var DOCKER_LABEL_GPU = 'gpu';
 	static var DOCKER_LABEL_CCC_TYPE_TYPE_WORKER = 'worker';
 	static var DOCKER_LABEL_CCC_TYPE_TYPE_SERVER = 'server';
-	static var DOCKER_LABEL_CCC_TEST_WORKER = 'ccc.test.worker';
+	static var DOCKER_LABEL_CCC_TEST_WORKER = 'dcc.test.worker';
 
 	static var docker :Docker;
 	static var lambdaScaling :LambdaScaling;
@@ -305,12 +306,13 @@ class ScalingCommands
 								var workersToRemove = workerIds.length - DesiredCapacity;
 								Log.debug({event:'Equalize', workersToRemove:'workersToRemove'});
 								if (workersToRemove > 0) {
-									return lambdaScaling.removeIdleWorkers(AsgType.CPU, workersToRemove)
-										.then(function(workerIdsRemoved) {
-											Log.info({event:'Equalize', workerIdsRemoved:'workerIdsRemoved'});
-											return 'Workers removed: ${workerIdsRemoved}';
-										})
-										.thenWait(2000);
+									throw 'Remimplement me later, if it makes sense';
+									// return lambdaScaling.removeIdleWorkers(AsgType.CPU, workersToRemove)
+									// 	.then(function(workerIdsRemoved) {
+									// 		Log.info({event:'Equalize', workerIdsRemoved:'workerIdsRemoved'});
+									// 		return 'Workers removed: ${workerIdsRemoved}';
+									// 	})
+									// 	.thenWait(2000);
 								} else {
 									return Promise.promise('No need to actually remove workers');
 								}
@@ -334,7 +336,7 @@ class ScalingCommands
 	public static function killAllWorkersAndJobs(docker :Docker) :Promise<Bool>
 	{
 		Log.debug({event:'KillAllWorkersAndJobs'});
-		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var rpcUrl = '${ScalingServerConfig.DCC}/${Type.enumConstructor(CCCVersion.v1)}';
 		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		return Promise.promise(true)
 			.pipe(function(_) {

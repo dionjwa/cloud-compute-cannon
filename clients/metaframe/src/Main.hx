@@ -1,11 +1,10 @@
-import ccc.metaframe.view.AppView;
-
 import ccc.metaframe.ApplicationState;
 import ccc.metaframe.ApplicationStore;
+import ccc.metaframe.view.AppView;
+import ccc.metaframe.view.HelpView;
 
 import js.Browser;
 import js.html.DivElement;
-import js.npm.materialui.MaterialUI;
 import js.npm.reactrnd.ReactRnD;
 
 import react.ReactDOM;
@@ -14,9 +13,14 @@ import react.ReactMacro.jsx;
 import redux.Store;
 import redux.react.Provider;
 
-import router.Link;
-import router.ReactRouter;
-import router.RouteComponentProps;
+// import router.Link;
+// import router.ReactRouter;
+// import router.RouteComponentProps;
+@:jsRequire('react-router-dom','BrowserRouter')
+extern class Router extends react.ReactComponent  { }
+
+@:jsRequire('react-router-dom','Route')
+extern class Route extends react.ReactComponent  { }
 
 class Main
 {
@@ -66,18 +70,23 @@ class Main
 		// 			}}
 		// 			>
 		// </Rnd>
+		// var app = ReactDOM.render(jsx('
+		// 	<Provider store=$store>
+		// 		<AppView/>
+		// 	</Provider>
+		// '), root);
 		var app = ReactDOM.render(jsx('
-			<Provider store=$store>
+			<Provider store={store}>
 				<AppView/>
 			</Provider>
 		'), root);
-
-		#if (debug && react_hot)
-		ReactHMR.autoRefresh(app);
-		#end
+		//<Route exact="true" path="/" component={HelpView} />
+		//<Router basename="/metaframe">
+				// 	<Route path="/:dockerimage" component={AppView} />
+				// </Router>
 	}
 
-	static function pageWrapper(props:RouteComponentProps)
+	static function pageWrapper(props:Dynamic)
 	{
 		var mainDivStyle = {
 			height: "100%",

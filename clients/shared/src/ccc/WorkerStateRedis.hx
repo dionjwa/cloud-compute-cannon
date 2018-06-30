@@ -51,7 +51,11 @@ class WorkerStateRedis
 		end
 		local events = cmsgpack.unpack(redis.call("HGET", "${REDIS_MACHINE_EVENT_LIST}", machineId))
 		local diskUsage = tonumber(redis.call("HGET", "${REDIS_MACHINE_DISK}", machineId))
-		workerState = {id=machineId, starts=starts, cpus=dockerInfo.NCPU, status=status, gpus=gpu, disk=diskUsage}
+		local lastJobTime = redis.call("HGET", "${REDIS_MACHINE_LAST_STATUS_TIME}", machineId)
+		if lastJobTime then
+			lastJobTime = tonumber(lastJobTime)
+		end
+		workerState = {id=machineId, lastJobTime=lastJobTime, starts=starts, cpus=dockerInfo.NCPU, status=status, gpus=gpu, disk=diskUsage}
 	end
 	';
 
@@ -97,7 +101,7 @@ class WorkerStateRedis
 		redis.call("HSET", "${REDIS_MACHINE_DOCKER_INFO}", machineId, cmsgpack.pack(dockerInfo))
 		redis.call("HSET", "${REDIS_MACHINE_STARTS}", machineId, cmsgpack.pack({}))
 		redis.call("HSET", "${REDIS_MACHINE_EVENT_LIST}", machineId, cmsgpack.pack({}))
-		if gpu == "1" then
+		if gpu and gpu ~= "" and tonumber(gpu) > 0 then
 			redis.call("SADD", "${REDIS_MACHINES_GPU}", machineId)
 		else
 			redis.call("SREM", "${REDIS_MACHINES_GPU}", machineId)

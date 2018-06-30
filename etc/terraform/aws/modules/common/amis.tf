@@ -20,7 +20,7 @@ variable "amis" {
 }
 
 #For GPU instances
-variable "amis-ubuntu" {
+variable "amis-gpu" {
   type = "map"
   default = {
     us-east-2 = "ami-4f80b52a"

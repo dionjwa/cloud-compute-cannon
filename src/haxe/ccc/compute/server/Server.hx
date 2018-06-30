@@ -36,6 +36,9 @@ class Server
 
 	static function main()
 	{
+#if PromhxExposeErrors
+		traceRed("WARNING PromhxExposeErrors is set");
+#end
 		//Required for source mapping
 		js.npm.sourcemapsupport.SourceMapSupport;
 		//Embed various files
@@ -78,8 +81,8 @@ class Server
 			.pipe(function(_) {
 				return initRedis(injector);
 			})
-			//Notification PUB/SUB streams from redis
 			.then(function(_) {
+				//Notification PUB/SUB streams from redis
 				StatusStream = JobStream.getStatusStream();
 				injector.map("promhx.Stream<ccc.JobStatsData>", "StatusStream").toValue(StatusStream);
 				StatusStream.catchError(function(err) {
@@ -90,16 +93,23 @@ class Server
 
 				var finishedJobStream = JobStream.getFinishedJobStream();
 				injector.map("promhx.Stream<Array<ccc.JobId>>", "FinishedJobStream").toValue(finishedJobStream);
-			})
-			//Create queue to add jobs
-			.then(function(_) {
-				QueueTools.initJobQueue(injector);
-				return true;
+
+				//Pipe redis logs to servers that send the logs to the fluent
+				//daemon. I suppose I could scrape the logs from redis itself
+				//but this way is IN SOME WAY simpler, less redis config and
+				//less redis infrastructure, although more code on the server.
+				//TDB if this long term makes sense
+				listenToRedisLogsAndPipeToLogger(injector);
+
+				//Create queues, for adding jobs and processing queue tasks
+				injector.injectInto(new Queues());
+
+				//Init the cron tasks
+				ccc.compute.server.services.queue.CronTasks.init(injector);
 			})
 			//Is this also a worker that processes jobs?
 			.pipe(function(_) {
 				injector.setStatus(ServerStartupState.BuildingServices);
-				traceYellow('DISABLE_WORKER=${ServerConfig.DISABLE_WORKER}');
 				if (!ServerConfig.DISABLE_WORKER) {
 					return initWorker(injector);
 				} else {
@@ -222,6 +232,7 @@ class Server
 
 			var workerInternalState :WorkerStateInternal = {
 				ncpus: 0,
+				ngpus: 0,
 				timeLastHealthCheck: null,
 				jobs: [],
 				id: null,
@@ -332,16 +343,18 @@ class Server
 		injector.map(ccc.storage.ServiceStorage).toValue(storage);
 		injector.getValue('Array<Dynamic>', 'Injectees').push(storage);
 
-		return storage.test()
-			.then(function(result) {
-				if (result.success) {
-					Log.info('Storage verified OK!');
-				} else {
-					Log.error(result);
-					throw 'Storage verification failed';
-				}
-				return result.success;
-			});
+		return RetryPromise.retryRegular(function() {
+			return storage.test()
+				.then(function(result) {
+					if (result.success) {
+						Log.info('Storage verified OK!');
+					} else {
+						Log.error(result);
+						throw 'Storage verification failed';
+					}
+					return result.success;
+				});
+			}, 5, 1000);
 	}
 
 	static function initWorker(injector :ServerState) :Promise<Bool>
@@ -357,11 +370,8 @@ class Server
 	{
 		var app = injector.getValue(Application);
 
-		//Serve metapages dashboards
 		app.use('/metaframe', Express.Static('./clients/metaframe'));
-		// app.use('/dashboard', Express.Static('./clients/dashboard'));
-		app.use('/node_modules', Express.Static('./node_modules'));
-		app.use('/', Express.Static('./web'));
+		// app.use('/', Express.Static('./web'));
 
 		var storage :ServiceStorage = injector.getValue(ServiceStorage);
 
@@ -406,5 +416,58 @@ class Server
 		memwatch.on('leak', function(data) {
 			Log.debug({memory_leak:data});
 		});
+	}
+
+	static function listenToRedisLogsAndPipeToLogger(injector :Injector) :Void
+	{
+		//Listen to the redis log channel and when there
+		//are new logs, grab them and forward them to the
+		//fluent daemon (since it is harder for the lambda
+		//scripts to send logs to fluent)
+		var logStream = createRedisLogStream(injector);
+		logStream.then(function(logs) {
+			if (logs != null && logs.length > 0) {
+				for (logBlob in logs) {
+					try {
+						var level :String = logBlob.level;
+						//If you don't delete this field, bunyan will NOT log it
+						Reflect.deleteField(logBlob, 'level');
+						//Convert time float to Date object
+						if (Reflect.hasField(logBlob, 'time')) {
+							Reflect.setField(logBlob, 'time', Date.fromTime(Reflect.field(logBlob, 'time')));
+						}
+						switch(level) {
+							case RedisLoggerTools.REDIS_LOG_DEBUG: Log.debug(logBlob);
+							case RedisLoggerTools.REDIS_LOG_INFO: Log.info(logBlob);
+							case RedisLoggerTools.REDIS_LOG_WARN: Log.warn(logBlob);
+							case RedisLoggerTools.REDIS_LOG_ERROR: Log.error(logBlob);
+							default: Log.debug(logBlob);
+						}
+					} catch (err :Dynamic) {
+						Log.warn('Failed to log $logBlob\n err=${Json.stringify(err)}');
+					}
+				}
+			}
+		})
+		.catchError(function(err) {
+			Log.error({error:err, message:'Error in the redis log stream'});
+		});
+	}
+
+	static function createRedisLogStream(injector :Injector) :Stream<Array<Dynamic>>
+	{
+		var redis :RedisClient = injector.getValue(RedisClient);
+		var logStream :Stream<Array<Dynamic>> =
+			RedisTools.createStreamCustom(
+				redis,
+				RedisLoggerTools.REDIS_KEY_LOGS_CHANNEL,
+				function(ignored) {
+					return ccc.lambda.RedisLogGetter.getLogs();
+				}
+			);
+		logStream.catchError(function(err) {
+			Log.error({error:err, message: 'Failure on logStream'});
+		});
+		return logStream;
 	}
 }

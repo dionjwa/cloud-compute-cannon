@@ -26,4 +26,12 @@ class StorageTools
 				throw 'unrecognized storage type: ${config.type}';
 		}
 	}
+
+	public static function getStorageLocalDefault() :ServiceStorage
+	{
+		return StorageTools.getStorage({
+			type: StorageSourceType.Local,
+			rootPath: DEFAULT_BASE_STORAGE_DIR
+		});
+	}
 }

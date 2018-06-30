@@ -23,7 +23,7 @@ class TestUnit extends haxe.unit.async.PromiseTest
 			image : {
 				value : DOCKER_IMAGE_DEFAULT,
 				type : DockerImageSourceType.Image
-			}
+			},
 		};
 
 		assertEquals(JobTools.inputDir(jobdef), '$jobId/$DIRECTORY_INPUTS/');

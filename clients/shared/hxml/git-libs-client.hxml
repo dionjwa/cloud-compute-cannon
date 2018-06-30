@@ -1,6 +1,8 @@
--lib metapage:git:https://github.com/dionjwa/metapage.git#9f10ddf
--lib haxe-misc-tools:git:https://github.com/dionjwa/haxe-misc-tools.git#4cd6ac8
--lib haxe-json-rpc:git:https://github.com/dionjwa/haxe-json-rpc.git#d86e0ee
+-lib metapage:git:https://github.com/dionjwa/metapage.git#37ac9ef
+-lib haxe-misc-tools:git:https://github.com/dionjwa/haxe-misc-tools.git#dec8f12
+-lib haxe-json-rpc:git:https://github.com/dionjwa/haxe-json-rpc.git#0d2d551
 -lib janicek-core-haxe:git:https://github.com/rjanicek/janicek-core-haxe.git#6630d81
 -cp .haxelib/janicek-core-haxe/git/src
--lib hxnodelibs:git:https://github.com/dionjwa/hxnodelibs.git#e691491
+-lib hxnodelibs:git:https://github.com/dionjwa/hxnodelibs.git#e4b70ec
+-lib compiletime:git:https://github.com/jasononeil/compiletime.git#26153fc
+-lib hxassert:0.1.0

@@ -8,30 +8,33 @@
 ################################################
 # Build metaframe client libs and resources
 ################################################
-FROM dionjwa/haxe-watch:v0.15.0 as builder-metaframe-builder
+FROM dionjwa/haxe-watch:v0.15.0 as builder-metaframe
 
 # Package the npm dependencies and package with browserify into a single file (libs.js)
-WORKDIR /app
 COPY ./package.json /app/package.json
 COPY ./package-lock.json /app/package-lock.json
+
+WORKDIR /app
 
 RUN npm install
 
 COPY ./clients/shared/hxml /app/clients/shared/hxml
 COPY ./build-metaframe.hxml /app/build-metaframe.hxml
 
+RUN mkdir -p .haxelib && haxelib -notimeout --always install build-metaframe.hxml
+
 # Add web media files
 COPY ./clients/shared/src /app/clients/shared/src
 COPY ./clients/metaframe/web /app/clients/metaframe/web
 COPY ./clients/metaframe/src /app/clients/metaframe/src
-COPY ./bin/build-metaframe /app/bin/build-metaframe
-
 COPY ./webpack.config.js /app/webpack.config.js
 
 COPY ./Makefile /app/Makefile
 
-RUN make haxelib-client
-RUN make webpack
+# This is not copied, but it's easier to expect it
+RUN touch .env
+
+RUN node_modules/.bin/webpack --mode=production
 
 ################################################
 # Build server npm libraries
@@ -65,11 +68,11 @@ COPY ./test/services/stand-alone-tester/build.hxml /app/test/services/stand-alon
 COPY ./test/services/local-scaling-server/build.hxml /app/test/services/local-scaling-server/build.hxml
 WORKDIR /app
 RUN haxelib newrepo
-RUN haxelib --always install ./etc/hxml/build-all.hxml
+RUN haxelib -notimeout --always install ./etc/hxml/build-all.hxml
 
 # Add the src, and compile all
-COPY ./clients/metaframe/src /app/clients/metaframe/src
 COPY ./clients/dashboard/src /app/clients/dashboard/src
+COPY ./clients/metaframe/src /app/clients/metaframe/src
 COPY ./clients/shared/src /app/clients/shared/src
 COPY ./src /app/src
 COPY ./test /app/test
@@ -95,9 +98,10 @@ RUN npm install -g forever && touch $APP/.foreverignore
 COPY --from=builder-server-npm /app/node_modules /app/node_modules
 COPY --from=builder-haxe-all /app/build/server /app/server
 COPY --from=builder-haxe-all /app/build/test /app/test
-COPY --from=builder-haxe-all /app/build/local-scaling-server /app/local-scaling-server
 COPY --from=builder-haxe-all /app/build/web /app/web
-COPY --from=builder-metaframe-builder /app/build/clients/metaframe /app/clients/metaframe
+COPY --from=builder-metaframe /app/build/clients/metaframe /app/clients/metaframe
+
+COPY ./.version /app/.version
 
 ENV PORT 9000
 EXPOSE 9000

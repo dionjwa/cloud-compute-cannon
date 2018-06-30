@@ -164,7 +164,7 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 										});
 								})
 								.then(function(result) {
-									routes.doJobCommand_v2(JobCLICommand.RemoveComplete, jobId)
+									routes.doJobCommand_v2(JobCLICommand.Remove, jobId)
 										.then(function(_) {})
 										.catchError(function(err) {
 											Log.error({error:err, message:'Failed to remove job $jobId after testCompleteComputeJobDirect'});

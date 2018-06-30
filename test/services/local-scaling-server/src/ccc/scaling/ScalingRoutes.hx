@@ -76,7 +76,7 @@ class ScalingRoutes
 	public function testpostjob() :Promise<JobResult>
 	{
 		var jobRequest = ServerTestTools.createTestJobAndExpectedResults('testpostjob', 1);
-		var f = function() return ccc.compute.client.js.ClientJSTools.postJob(ScalingServerConfig.CCC, jobRequest.request, {});
+		var f = function() return ccc.compute.client.js.ClientJSTools.postJob(ScalingServerConfig.DCC, jobRequest.request, {});
 		return RetryPromise.retryRegular(f, 5, 500);
 	}
 

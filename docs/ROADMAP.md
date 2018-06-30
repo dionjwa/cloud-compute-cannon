@@ -11,3 +11,6 @@ Planned features (as yet unordered):
  - GPU support
  - GCE (Google Cloud Engine) support
 
+## Required tests
+
+ - Non-existent image for turbo job throws an error (missing container so no id) and never returns.

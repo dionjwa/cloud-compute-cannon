@@ -13,7 +13,7 @@ services:
       - ./:/app/config/
       - /var/run/docker.sock:/var/run/docker.sock
       #This volume is needed for running computes locally
-      - local-storage:/app/local-storage
+      - local-storage:/jobs
     environment:
       PORT: "9000"
       LOG_LEVEL: "${LOG_LEVEL}"

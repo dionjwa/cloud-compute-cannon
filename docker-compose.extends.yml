@@ -11,15 +11,15 @@ services:
       - ./build/server:/app/server
       - ./build/clients:/app/clients
       - ./src/web:/app/web
-      - local-storage:/app/local-storage
+      - local-storage:/jobs
       - ./package.json:/app/package.json
       - ./node_modules_docker:/app/node_modules
     environment:
+      - DISABLE_WORKER=false
       - PORT=9000
       - STORAGE_HTTP_PREFIX=http://dcc.local
       - REDIS_HOST=redis
       - LOG_LEVEL=info
-      - FLUENT_HOST=fluentd
       - WORKER_STATUS_CHECK_INTERVAL_SECONDS=3000
     networks:
       - dcc

@@ -2,6 +2,12 @@
 
 ## Development
 
+    make develop
+
+Then in another terminal:
+
+    make webpack-watch
+
 	npm run set-build:client-metaframe
 
 	pushd clients/metaframe

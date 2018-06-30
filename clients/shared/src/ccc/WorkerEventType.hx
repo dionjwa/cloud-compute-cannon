@@ -10,4 +10,6 @@ abstract WorkerEventType(String) from String to String {
 	var SET_WORKER_COUNT = 'SET_WORKER_COUNT';
 	var BAD_HEALTH_DETECTED = 'BAD_HEALTH_DETECTED';
 	var QUEUES = 'QUEUES';
+	var SCALE_UP = 'SCALE_UP';
+	var SCALE_DOWN = 'SCALE_DOWN';
 }

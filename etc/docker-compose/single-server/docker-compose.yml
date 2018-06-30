@@ -9,7 +9,7 @@ volumes:
 services:
 
   ccc:
-    image: "dionjwa/docker-cloud-compute:0.4.0"
+    image: "dionjwa/docker-cloud-compute:0.4.4"
     ports:
       - "9000:9000"
     links:
@@ -17,12 +17,11 @@ services:
       - fluentd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - local-storage:/app/local-storage
+      - local-storage:/jobs
     environment:
       - PORT=9000
       - STORAGE_HTTP_PREFIX=http://localhost:9000
       - REDIS_HOST=redis
-      - VIRTUAL_HOST=localhost:9000
       - FLUENT_HOST=fluentd
       - FLUENT_PORT=24225
       - LOG_LEVEL=debug

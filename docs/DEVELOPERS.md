@@ -9,7 +9,7 @@
 Run these once:
 
 - Install [docker](https://docs.docker.com/engine/installation/)
-- OPTIONAL: Install [node.js/npm](https://nodejs.org/en/download/)
+- Install [node.js/npm](https://nodejs.org/en/download/)
 - `git clone git@github.com:dionjwa/docker-cloud-compute.git` (or your fork)
 - `cd docker-cloud-compute`
 - `./bin/install`

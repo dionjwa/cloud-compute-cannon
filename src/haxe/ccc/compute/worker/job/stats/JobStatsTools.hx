@@ -42,7 +42,7 @@ class JobStatsTools
 	public static var SNIPPET_LOAD_CURRENT_JOB_STATS =
 	'
 	local jobStatsMsgpacked = redis.call("HGET", "${REDIS_KEY_HASH_JOB_STATS}", jobId)
-	if jobStatsMsgpacked == nil then
+	if not jobStatsMsgpacked then
 		return {err="${RedisError.NoJobFound}", jobId=jobId}
 	end
 	local jobstats = cmsgpack.unpack(jobStatsMsgpacked)
@@ -50,6 +50,9 @@ class JobStatsTools
 
 	static var SNIPPET_LOAD_CURRENT_JOB_ATTEMPT =
 	'
+	if jobstats.attempts == nil then
+		jobstats.attempts = {}
+	end
 	local jobData = jobstats.attempts[attempt]
 	';
 
@@ -65,26 +68,26 @@ class JobStatsTools
 	public static var SNIPPET_PUBLISH_JOB = '
 		${SNIPPET_LOAD_CURRENT_JOB_STATS}
 		local jobstatsString = cjson.encode(jobstats)
-		redis.call("SET", "$REDIS_CHANNEL_JOB_PREFIX" .. jobId, jobstatsString)
-		redis.call("PUBLISH", "$REDIS_CHANNEL_JOB_PREFIX" .. jobId, jobstatsString)
-		redis.call("PUBLISH", "$REDIS_CHANNEL_STATUS", jobId)
+		redis.call("SET", "${REDIS_CHANNEL_JOB_PREFIX}" .. jobId, jobstatsString)
+		redis.call("PUBLISH", "${REDIS_CHANNEL_JOB_PREFIX}" .. jobId, jobstatsString)
+		redis.call("PUBLISH", "${REDIS_CHANNEL_STATUS}", jobId)
 	';
 
 	public static var SNIPPET_PUBLISH_ACTIVE_JOBS = '
-		local sortedJobIds = redis.call("ZRANGE", "$REDIS_ZSET_JOBS_ACTIVE", 0, -1)
+		local sortedJobIds = redis.call("ZRANGE", "${REDIS_ZSET_JOBS_ACTIVE}", 0, -1)
 		local listString = "[]"
 		if #sortedJobIds > 0 then
 			listString = cjson.encode(sortedJobIds)
 		end
-		redis.call("PUBLISH", "$REDIS_CHANNEL_JOBS_ACTIVE", listString)
+		redis.call("PUBLISH", "${REDIS_CHANNEL_JOBS_ACTIVE}", listString)
 	';
 	public static var SNIPPET_PUBLISH_FINISHED_JOBS = '
-		local sortedJobIds = redis.call("ZRANGE", "$REDIS_ZSET_JOBS_FINISHED", 0, -1)
+		local sortedJobIds = redis.call("ZRANGE", "${REDIS_ZSET_JOBS_FINISHED}", 0, -1)
 		local listString = "[]"
 		if #sortedJobIds > 0 then
 			listString = cjson.encode(sortedJobIds)
 		end
-		redis.call("PUBLISH", "$REDIS_CHANNEL_JOBS_FINISHED", listString)
+		redis.call("PUBLISH", "${REDIS_CHANNEL_JOBS_FINISHED}", listString)
 	';
 
 	static var SNIPPET_SAVE_JOB_STATS =
@@ -126,9 +129,17 @@ class JobStatsTools
 	public static var SNIPPET_SAVE_STATUS_TO_STATS =
 	'
 		${SNIPPET_LOAD_CURRENT_JOB_STATS}
-		local jobData = jobstats.attempts[attempt]
+		${SNIPPET_LOAD_CURRENT_JOB_ATTEMPT}
+
+		local logMessage = {message=cjson.encode(jobstats), jobstats=jobstats, time=time, level="${RedisLoggerTools.REDIS_LOG_INFO}"}
+		${RedisLoggerTools.SNIPPET_REDIS_LOG}
+
 		if not jobData then
 			jobData = jobstats.attempts[#jobstats.attempts]
+			if not jobData then
+				jobData = {}
+				jobstats.attempts[#jobstats.attempts] = jobData
+			end
 		end
 		local publishActiveFinishedListChannel = false
 		if state ~= nil then
@@ -151,11 +162,17 @@ class JobStatsTools
 				local workerId = redis.call("HGET", "${REDIS_KEY_HASH_JOB_WORKER}", jobId)
 				if workerId then
 					redis.call("ZREM", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_ACTIVE}" .. workerId, jobId)
-					redis.call("ZADD", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS_FINISHED}" .. workerId, time, jobId)
 				end
 
 				jobstats.statusFinished = stateFinished
 				redis.call("HSET", "${JobStateTools.REDIS_KEY_HASH_JOB_STATUS_FINISHED}", jobId, stateFinished)
+
+				if jobstats.def and jobstats.def.parameters and jobstats.def.parameters.gpu and jobstats.def.parameters.gpu > 0 then
+					redis.call("HSET", "${REDIS_HASH_TIME_LAST_JOB_FINISHED}", "${BullQueueNames.JobQueueGpu}", time)
+				else
+					redis.call("HSET", "${REDIS_HASH_TIME_LAST_JOB_FINISHED}", "${BullQueueNames.JobQueue}", time)
+				end
+
 
 			elseif state == "${JobStatus.Pending}" and jobstats.status == "${JobStatus.Finished}" then
 				return {err="jobId=" .. tostring(jobId) .. " Error setting status=" .. tostring(state) .. ", already ${JobStatus.Finished}"}
@@ -192,6 +209,18 @@ class JobStatsTools
 			${SNIPPET_PUBLISH_FINISHED_JOBS}
 		end
 	';
+
+	public static function getTimeLastJobComplete(queue :BullQueueNames) :Promise<Float>
+	{
+		return RedisPromises.hget(REDIS_CLIENT, REDIS_CHANNEL_JOBS_FINISHED, queue)
+			.then(function(time) {
+				if (time != null && time != "") {
+					return Std.parseFloat(time);
+				} else {
+					return 0;
+				}
+			});
+	}
 
 	public static function getActiveJobsForKeyword(keyword :String) :Promise<Array<JobId>>
 	{
@@ -241,6 +270,7 @@ class JobStatsTools
 			finished: DateFormatTools.getFormattedDate(stats.finished),
 			error: stats.error,
 			attempts: stats.attempts.map(function(jobData) {
+				Assert.notNull(jobData.workerId);
 				var pending = DateFormatTools.getShortStringOfDateDiff(Date.fromTime(jobData.enqueued), Date.fromTime(jobData.dequeued));
 				var timeMaxInputsImage = jobData.copiedImage > jobData.copiedInputs ? jobData.copiedImage : jobData.copiedInputs;
 				var timeMaxOutputsLogs = jobData.copiedOutputs > jobData.copiedLogs ? jobData.copiedOutputs : jobData.copiedLogs;
@@ -256,7 +286,8 @@ class JobStatsTools
 					logs: DateFormatTools.getShortStringOfDateDiff(Date.fromTime(jobData.containerExited), Date.fromTime(jobData.copiedLogs)),
 					outputsAndLogs: DateFormatTools.getShortStringOfDateDiff(Date.fromTime(jobData.containerExited), Date.fromTime(timeMaxOutputsLogs)),
 					exitCode: jobData.exitCode,
-					error: jobData.error
+					error: jobData.error,
+					workerId: jobData.workerId,
 				};
 				return jobDataPretty;
 			}).array()
@@ -276,19 +307,17 @@ class JobStatsTools
 			});
 	}
 
-
 	@redis({lua:'
 		local jobId = ARGV[1]
 		local time = tonumber(ARGV[2])
 		local jobstats = {requestReceived=time, requestUploaded=0, finished=0, jobId=jobId}
 		${SNIPPET_SAVE_JOB_STATS}
 	'})
-	static function requestRecievedInternal(jobId :JobId, time :Float) :Promise<String> {}
-	public static function requestRecieved(jobId :JobId)
-	{
-		return requestRecievedInternal(jobId, time());
-	}
-
+	static function requestRecievedInternal(jobId :JobId, atTime :Float) :Promise<String> {}
+	public static function requestRecieved(jobId :JobId, ?atTime :Float)
+ 	{
+		return requestRecievedInternal(jobId, atTime == null ? time() : atTime);
+ 	}
 
 	static var SCRIPT_REQUEST_UPLOAD_INTERNAL = '
 	local jobId = ARGV[1]
@@ -377,6 +406,7 @@ class JobStatsTools
 	static function jobEnqueuedInternal(jobId :JobId, def :String, time :Float) :Promise<Int> {}
 	public static function jobEnqueued(jobId :JobId, def :DockerBatchComputeJob)
 	{
+		//The def can be null, when we're requeueing
 		return jobEnqueuedInternal(jobId, def != null ? Json.stringify(def) : "null", time());
 	}
 
@@ -386,6 +416,10 @@ class JobStatsTools
 	local workerId = ARGV[3]
 	${SNIPPET_BAIL_IF_NO_JOB}
 	local time = tonumber(ARGV[4])
+
+	local logMessage = {message="SCRIPT_DEQUEUED_INTERNAL", workerId=workerId, time=time, level="${RedisLoggerTools.REDIS_LOG_INFO}"}
+	${RedisLoggerTools.SNIPPET_REDIS_LOG}
+
 	redis.call("ZADD", "${REDIS_KEY_ZSET_PREFIX_WORKER_JOBS}" .. workerId, time, jobId)
 
 	local existingWorkerId = redis.call("HGET", "${REDIS_KEY_HASH_JOB_WORKER}", jobId)
@@ -397,13 +431,16 @@ class JobStatsTools
 	redis.call("HSET", "${REDIS_KEY_HASH_JOB_WORKER}", jobId, workerId)
 	${SNIPPET_LOAD_CURRENT_JOB_STATS_AND_DATA}
 	jobData.dequeued = time
-	jobData.worker = workerId
+	jobData.workerId = workerId
+
 	${SNIPPET_SAVE_JOB_STATS}
 	';
 	@redis({lua:'${SCRIPT_DEQUEUED_INTERNAL}'})
 	static function jobDequeuedInternal(jobId :JobId, attempt :Int, workerId :MachineId, time :Float) :Promise<String> {}
 	public static function jobDequeued(jobId :JobId, attempt :Int, workerId :MachineId)
 	{
+		Assert.notNull(jobId);
+		Assert.notNull(workerId);
 		return jobDequeuedInternal(jobId, attempt, workerId, time());
 	}
 
@@ -533,12 +570,16 @@ class JobStatsTools
 		redis.call("ZREM", workerJobsKey, jobId)
 		redis.call("ZREM", workerJobsActiveKey, jobId)
 	end
-	redis.call("ZREM", "$REDIS_ZSET_JOBS_ACTIVE}", jobId)
-	redis.call("ZREM", "$REDIS_ZSET_JOBS_FINISHED}", jobId)
-	redis.call("SREM", "$REDIS_SET_JOBS_ACTIVE}", jobId)
-	${SNIPPET_REMOVE_JOB_META_INDICES}
-	redis.log(redis.LOG_WARNING, "Deleting job stats blob for jobId=" .. jobId)
+	redis.call("ZREM", "${REDIS_ZSET_JOBS_ACTIVE}", jobId)
+	redis.call("ZREM", "${REDIS_ZSET_JOBS_FINISHED}", jobId)
+	redis.call("SREM", "${REDIS_SET_JOBS_ACTIVE}", jobId)
+	local jobStatsMsgpacked = redis.call("HGET", "${REDIS_KEY_HASH_JOB_STATS}", jobId)
+	if jobStatsMsgpacked then
+		${SNIPPET_REMOVE_JOB_META_INDICES}
+	end
+
 	redis.call("HDEL", "${REDIS_KEY_HASH_JOB_STATS}", jobId)
+	redis.call("DEL", "${REDIS_CHANNEL_JOB_PREFIX}" .. jobId)
 	';
 	static var SCRIPT_REMOVE_ALL_JOBS_TRACES = '
 	local jobId = ARGV[1]
@@ -578,8 +619,8 @@ class JobStatsTools
 		allJobsMap[jobStats.jobId] = jobStats
 		index = index + 2
 	end
-	local sortedActiveJobIds = redis.call("ZRANGE", "$REDIS_ZSET_JOBS_ACTIVE", 0, -1)
-	local sortedFinishedJobIds = redis.call("ZRANGE", "$REDIS_ZSET_JOBS_FINISHED", 0, -1)
+	local sortedActiveJobIds = redis.call("ZRANGE", "${REDIS_ZSET_JOBS_ACTIVE}", 0, -1)
+	local sortedFinishedJobIds = redis.call("ZRANGE", "${REDIS_ZSET_JOBS_FINISHED}", 0, -1)
 	return cjson.encode({all=allJobsMap, active=sortedActiveJobIds, finished=sortedFinishedJobIds})
 	';
 	@redis({lua:'${SCRIPT_GET_JOB_STATE_INTERNAL}'})
@@ -600,7 +641,22 @@ class JobStatsTools
 			});
 	}
 
+	public static function getFinishedJobsOlderThan(time :Float) :Promise<Array<JobId>>
+	{
+		return getJobsFinishedBetween(0, time);
+	}
 
+	public static function getJobsFinishedBetween(fromTime :Float, toTime :Float) :Promise<Array<JobId>>
+	{
+		return cast RedisPromises.zrangebyscore(REDIS_CLIENT, '${REDIS_ZSET_JOBS_FINISHED}', fromTime, toTime)
+			.then(function(jobIdsMaybe :Array<Dynamic>) {
+					//Stupid lua
+					if (RedisLuaTools.isArrayObjectEmpty(cast jobIdsMaybe)) {
+						return [];
+					}
+					return cast jobIdsMaybe;
+				});
+	}
 
 	inline static function time() :Float
 	{

@@ -10,7 +10,7 @@ typedef LogObj = {
 
 class FluentTools
 {
-	public static function createEmitter(timestampKey :String = '@timestamp', isTimeStampString :Bool = true)
+	public static function createEmitter(timestampKey :String = 'timestamp', isTimeStampString :Bool = false)
 	{
 		return function(obj :Dynamic, ?cb :Void->Void) :Void {
 			var msg :LogObj = switch(untyped __typeof__(obj)) {
@@ -32,6 +32,18 @@ class FluentTools
 						:
 						Reflect.field(msg, '@timestamp').getTime());
 			}
+
+			// Use log level names instead of numbers
+			//https://github.com/trentm/node-bunyan#levels
+			Reflect.setField(msg, 'level', switch(Reflect.field(msg, 'level')) {
+				case 10: 'trace';
+				case 20: 'debug';
+				case 30: 'info';
+				case 40: 'warn';
+				case 50: 'error';
+				case 60: 'fatal';
+				default: 'unknown';
+			});
 
 			static_emitter(msg, null, cb);
 		}

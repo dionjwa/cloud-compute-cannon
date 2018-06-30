@@ -56,14 +56,21 @@ class WebsocketConnectionMetaframeJobMonitor
 		if (turboJobDef.parameters.maxDuration == null) {
 			turboJobDef.parameters.maxDuration = ServerConfig.JOB_TURBO_MAX_TIME_SECONDS;
 		}
-		traceYellow('server running job ${Json.stringify(turboJobDef)}');
 		ServiceBatchComputeTools.runTurboJobRequestV2(injector, turboJobDef)
 			.then(function(result) {
-				traceYellow('turbo job from ws complete=${Json.stringify(result, null, "  ")}');
 				sendMessage(MetaframeAction.SetJobResults(result));
 			})
 			.catchError(function(err) {
-				Log.error({error:err});
+				Log.debug({error:err});
+				var result :JobResultsTurboV2 = {
+					id: null,
+					stdout: null,
+					stderr: null,
+					exitCode: -1,
+					outputs: null,
+					error: Json.stringify(err),
+				};
+				sendMessage(MetaframeAction.SetJobResults(result));
 			});
 	}
 

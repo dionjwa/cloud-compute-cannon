@@ -1,5 +1,5 @@
-resource "aws_iam_role" "terraform_ccc_lambda_role" {
-  name = "terraform_ccc_lambda_role"
+resource "aws_iam_role" "terraform_dcc_lambda_role" {
+  name = "terraform_dcc_lambda_role"
   path = "/"
   assume_role_policy = <<EOF
 {
@@ -17,8 +17,8 @@ resource "aws_iam_role" "terraform_ccc_lambda_role" {
 EOF
 }
 
-resource "aws_iam_policy" "terraform_ccc_lambda_iam_scale_policy" {
-  name_prefix = "terraform_ccc_lambda_iam_scale_policy"
+resource "aws_iam_policy" "terraform_dcc_lambda_iam_scale_policy" {
+  name_prefix = "terraform_dcc_lambda_iam_scale_policy"
   path = "/"
   policy = <<EOF
 {
@@ -46,35 +46,35 @@ resource "aws_iam_policy" "terraform_ccc_lambda_iam_scale_policy" {
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "terraform_ccc_lambda_policy_attachment" {
-  policy_arn = "${aws_iam_policy.terraform_ccc_lambda_iam_scale_policy.arn}"
-  role = "${aws_iam_role.terraform_ccc_lambda_role.name}"
+resource "aws_iam_role_policy_attachment" "terraform_dcc_lambda_policy_attachment" {
+  policy_arn = "${aws_iam_policy.terraform_dcc_lambda_iam_scale_policy.arn}"
+  role = "${aws_iam_role.terraform_dcc_lambda_role.name}"
 }
 
-resource "aws_cloudwatch_event_rule" "terraform_ccc_lambda_scale_timer_rule" {
-  name        = "terraform_ccc_lambda-rule-scale-timer"
+resource "aws_cloudwatch_event_rule" "terraform_dcc_lambda_scale_timer_rule" {
+  name        = "terraform_dcc_lambda-rule-scale-timer"
   description = "Fire this event every minute"
   schedule_expression = "rate(1 minute)"
 }
 
-resource "aws_cloudwatch_event_target" "terraform_ccc_lambda_scale_timer_target" {
-    rule = "${aws_cloudwatch_event_rule.terraform_ccc_lambda_scale_timer_rule.name}"
-    target_id = "terraform_ccc_lambda_scale"
-    arn = "${aws_lambda_function.terraform_ccc_lambda_scale.arn}"
+resource "aws_cloudwatch_event_target" "terraform_dcc_lambda_scale_timer_target" {
+    rule = "${aws_cloudwatch_event_rule.terraform_dcc_lambda_scale_timer_rule.name}"
+    target_id = "terraform_dcc_lambda_scale"
+    arn = "${aws_lambda_function.terraform_dcc_lambda_scale.arn}"
 }
 
-resource "aws_lambda_permission" "terraform_ccc_allow_cloudwatch_to_call_lambda_scale" {
+resource "aws_lambda_permission" "terraform_dcc_allow_cloudwatch_to_call_lambda_scale" {
   statement_id   = "PermissionInvokeLambdaScale"
   action         = "lambda:InvokeFunction"
-  function_name  = "${aws_lambda_function.terraform_ccc_lambda_scale.function_name}"
+  function_name  = "${aws_lambda_function.terraform_dcc_lambda_scale.function_name}"
   principal      = "events.amazonaws.com"
-  source_arn     = "${aws_cloudwatch_event_rule.terraform_ccc_lambda_scale_timer_rule.arn}"
+  source_arn     = "${aws_cloudwatch_event_rule.terraform_dcc_lambda_scale_timer_rule.arn}"
 }
 
-resource "aws_lambda_function" "terraform_ccc_lambda_scale" {
+resource "aws_lambda_function" "terraform_dcc_lambda_scale" {
   filename         = "${path.module}/lambda.zip"
-  function_name    = "terraform_ccc_lambda_scale"
-  role             = "${aws_iam_role.terraform_ccc_lambda_role.arn}"
+  function_name    = "terraform_dcc_lambda_scale"
+  role             = "${aws_iam_role.terraform_dcc_lambda_role.arn}"
   handler          = "index.handlerScale"
   runtime          = "nodejs6.10"
   timeout          = 60

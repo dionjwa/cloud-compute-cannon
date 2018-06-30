@@ -82,7 +82,7 @@ class ServerCommands
 		var haxeCompilerVersion = Version.getHaxeCompilerVersion();
 		var customVersion = null;
 		try {
-			customVersion = Fs.readFileSync('VERSION', {encoding:'utf8'}).trim();
+			customVersion = Fs.readFileSync('.version', {encoding:'utf8'}).trim();
 		} catch(ignored :Dynamic) {
 			customVersion = null;
 		}
@@ -95,21 +95,11 @@ class ServerCommands
 			gitSha = Version.getGitCommitHash().substr(0,8);
 		} catch(e :Dynamic) {}
 
-		//Single per instance id.
-		var instanceVersion :String = null;
-		try {
-			instanceVersion = Fs.readFileSync('INSTANCE_VERSION', {encoding:'utf8'});
-		} catch(ignored :Dynamic) {
-			instanceVersion = js.npm.shortid.ShortId.generate();
-			Fs.writeFileSync('INSTANCE_VERSION', instanceVersion, {encoding:'utf8'});
-		}
-
 		var blob :ServerVersionBlob = {
 			npm: npmPackageVersion,
 			git: gitSha,
 			compiler: haxeCompilerVersion,
 			VERSION: customVersion,
-			instance: instanceVersion,
 			compile_time: date
 		};
 

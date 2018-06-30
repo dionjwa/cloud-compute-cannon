@@ -26,10 +26,6 @@ class TestTurboJobs extends ServerAPITestBase
 
 		var random = ShortId.generate();
 
-		var customInputsPath = '$TEST_BASE/$TESTNAME/$random/$DIRECTORY_INPUTS';
-		var customOutputsPath = '$TEST_BASE/$TESTNAME/$random/$DIRECTORY_OUTPUTS';
-		var customResultsPath = '$TEST_BASE/$TESTNAME/$random/results';
-
 		var inputs :DynamicAccess<String> = {};
 
 		var inputName2 = 'in${ShortId.generate()}';
@@ -100,10 +96,7 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 
 		var random = ShortId.generate();
 
-		var customInputsPath = '$TEST_BASE/$TESTNAME/$random/$DIRECTORY_INPUTS';
-		var customOutputsPath = '$TEST_BASE/$TESTNAME/$random/$DIRECTORY_OUTPUTS';
-		var customResultsPath = '$TEST_BASE/$TESTNAME/$random/results';
-
+		var queue : js.npm.bull.Bull.Queue<QueueJobDefinition,QueueJobResults> = new js.npm.bull.Bull.Queue(BullQueueNames.JobQueue, {redis:{port:ServerTesterConfig.REDIS_PORT, host:ServerTesterConfig.REDIS_HOST}});
 		var inputs :DynamicAccess<String> = {};
 
 		var inputName2 = 'in${ShortId.generate()}';
@@ -154,14 +147,21 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 
 		var activeSubmissionPromise = proxy.submitTurboJobJson(request);
 
-		return PromiseTools.delay(100)
+		return Promise.promise(true)
 			.pipe(function(_) {
+				//Make sure the turbo job is not only a bull queue job
+				//but registered as a DCC job as well, since there are
+				//statistics and metrics reported internally.
 				var turboJobs :TurboJobs = _redis;
-				return turboJobs.isJob(jobId)
-					.then(function(isJob) {
-						assertTrue(isJob);
-						return true;
-					});
+				return RetryPromise.retryRegular(function() {
+					return turboJobs.isJob(jobId)
+						.then(function(isJob) {
+							if (!isJob) {
+								throw 'Test job not yet in the system';
+							}
+							return true;
+						});
+				}, 120, 100);
 			})
 			.pipe(function(_) {
 				return activeSubmissionPromise;
@@ -182,6 +182,14 @@ cat /$DIRECTORY_INPUTS/$inputName3 > /$DIRECTORY_OUTPUTS/$outputName3
 				assertEquals(jobResult.stdout[0].trim(), outputValueStdout);
 
 				return true;
+			})
+			.pipe(function(_) {
+				return RetryPromise.retryRegular(function() {
+					return queue.getJob(jobId).promhx()
+						.then(function(job) {
+							return true;
+						});
+				}, 120, 100);
 			})
 			.pipe(function(_) {
 				var turboJobs :TurboJobs = _redis;

@@ -208,8 +208,7 @@ class BatchComputeDockerTurbo
 				opts.HostConfig = opts.HostConfig != null ? opts.HostConfig : {};
 				opts.HostConfig.LogConfig = {Type:DockerLoggingDriver.jsonfile, Config:{}};
 
-				if (job.parameters != null && job.parameters.gpu) {
-					traceGreen('ADDING GPU Runtime=nvidia');
+				if (job.parameters.gpu > 0 && !job.parameters.DISABLE_NVIDIA_DOCKER_RUNTIME && !ServerConfig.DISABLE_NVIDIA_RUNTIME) {
 					Reflect.setField(opts.HostConfig, "Runtime", "nvidia");
 				}
 
@@ -390,6 +389,10 @@ class BatchComputeDockerTurbo
 				opts.WorkingDir = opts.WorkingDir != null ? opts.WorkingDir : job.workingDir;
 				opts.HostConfig = opts.HostConfig != null ? opts.HostConfig : {};
 				opts.HostConfig.LogConfig = {Type:DockerLoggingDriver.jsonfile, Config:{}};
+
+				if (job.parameters.gpu > 0 && !job.parameters.DISABLE_NVIDIA_DOCKER_RUNTIME && !ServerConfig.DISABLE_NVIDIA_RUNTIME) {
+					Reflect.setField(opts.HostConfig, "Runtime", "nvidia");
+				}
 
 				opts.Image = opts.Image != null ? opts.Image : imageId.toLowerCase();
 				opts.Env = t9.redis.RedisLuaTools.isArrayObjectEmpty(opts.Env) ? [] : opts.Env;

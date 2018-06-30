@@ -35,12 +35,16 @@ class Jobs
 			.thenTrue();
 	}
 
+	static var SCRIPT_REMOVE_JOB = '
+	local jobId = ARGV[1]
+	redis.call("HDEL", "${REDIS_KEY_HASH_JOB}", jobId)
+	redis.call("HDEL", "${REDIS_KEY_HASH_JOB_PARAMETERS}", jobId)
+	';
+	@redis({lua:'${SCRIPT_REMOVE_JOB}'})
+	static function removeJobInternal(jobId :JobId) :Promise<String>{}
 	public static function removeJob(jobId :JobId) :Promise<Bool>
 	{
-		return RedisPromises.hdel(REDIS_CLIENT, REDIS_KEY_HASH_JOB, jobId)
-			.pipe(function(_) {
-				return RedisPromises.hdel(REDIS_CLIENT, REDIS_KEY_HASH_JOB_PARAMETERS, jobId);
-			})
+		return removeJobInternal(jobId)
 			.thenTrue();
 	}
 

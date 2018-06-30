@@ -24,13 +24,13 @@ class RedisLoggerTools
 	 *    logMessage
 	 */
 	public static var SNIPPET_REDIS_LOG = '
-		local logMessageString = cjson.encode(logMessage)
-		redis.log(redis.LOG_NOTICE, logMessageString)
-		redis.call("RPUSH", "${REDIS_KEY_LOGS_LIST}", logMessageString)
-		redis.call("PUBLISH", "${REDIS_KEY_LOGS_LIST}", logMessageString)
+		local queueName = "${BullQueueNames.SingleMessageQueue}"
+		local jobOptString = cjson.encode({removeOnComplete=true,removeOnFail=true,attempts=2})
+		local jobDataString = cjson.encode({type="${BullQueueSingleMessageQueueType.log}", data=logMessage})
+		${ccc.compute.server.services.queue.BullQueueJobTools.SNIPPET_ADD_BULL_JOB}
 	';
 
-	static function logToRedis(redis :RedisClient, level :String, logThing :Dynamic, pos :haxe.PosInfos)
+	static function logToRedis(redis :RedisClient, level :String, logThing :Dynamic, ?disableTrace: Bool = false, pos :haxe.PosInfos)
 	{
 		var obj :haxe.DynamicAccess<Dynamic> = switch(untyped __typeof__(logThing)) {
 			case 'object': cast Reflect.copy(logThing);
@@ -42,27 +42,29 @@ class RedisLoggerTools
 		obj.set('level', level);
 		obj.set('time', Date.now().getTime());
 		var logString = Json.stringify(obj);
-		trace(logString);
 		redis.rpush(REDIS_KEY_LOGS_LIST, logString, function(err, result) {
 			if (err != null) {
 				trace(err);
 			}
 		});
+		if (!disableTrace) {
+			trace(logString);
+		}
 	}
 
-	public static function debugLog(redis :RedisClient, obj :Dynamic, ?pos :haxe.PosInfos)
+	public static function debugLog(redis :RedisClient, obj :Dynamic, ?disableTrace: Bool = false, ?pos :haxe.PosInfos)
 	{
-		logToRedis(redis, REDIS_LOG_DEBUG, obj, pos);
+		logToRedis(redis, REDIS_LOG_DEBUG, obj, disableTrace, pos);
 	}
 
-	public static function infoLog(redis :RedisClient, obj :Dynamic, ?pos :haxe.PosInfos)
+	public static function infoLog(redis :RedisClient, obj :Dynamic, ?disableTrace: Bool = false, ?pos :haxe.PosInfos)
 	{
-		logToRedis(redis, REDIS_LOG_INFO, obj, pos);
+		logToRedis(redis, REDIS_LOG_INFO, obj, disableTrace, pos);
 	}
 
-	public static function errorLog(redis :RedisClient, obj :Dynamic, ?pos :haxe.PosInfos)
+	public static function errorLog(redis :RedisClient, obj :Dynamic, ?disableTrace: Bool = false, ?pos :haxe.PosInfos)
 	{
-		logToRedis(redis, REDIS_LOG_ERROR, obj, pos);
+		logToRedis(redis, REDIS_LOG_ERROR, obj, disableTrace, pos);
 	}
 
 	public static function errorEventLog(redis :RedisClient, err :Error, ?message :String, ?pos :haxe.PosInfos)
@@ -73,6 +75,6 @@ class RedisLoggerTools
 			errorMessage: try{err.message;} catch(e :Dynamic) {null;},
 			message: message
 		};
-		logToRedis(redis, REDIS_LOG_ERROR, errObj, pos);
+		logToRedis(redis, REDIS_LOG_ERROR, errObj, false, pos);
 	}
 }

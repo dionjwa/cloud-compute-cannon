@@ -1,8 +1,7 @@
 package ccc;
 
 typedef SingleJobExecution = {
-	var worker :MachineId;
-	var containerId :String;
+	var workerId :MachineId;
 	var enqueued :Float;
 	var dequeued :Float;
 	var copiedInputs :Float;

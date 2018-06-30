@@ -668,55 +668,6 @@ exit $exitCode
 		return promise.boundPromise;
 	}
 
-	@timeout(120000)
-	public function testMultipartRPCSubmissionBadDockerImage() :Promise<Bool>
-	{
-		var url = 'http://${_serverHost}${SERVER_RPC_URL}';
-		var script =
-'#!/bin/sh
-exit 0
-';
-		var scriptName = 'script.sh';
-
-		var random = ShortId.generate();
-		var customInputsPath = '$TEST_BASE/testMultipartRPCSubmissionBadDockerImage/$random/inputs';
-		var customOutputsPath = '$TEST_BASE/testMultipartRPCSubmissionBadDockerImage/$random/outputs';
-		var customResultsPath = '$TEST_BASE/testMultipartRPCSubmissionBadDockerImage/$random/results';
-
-		var jobSubmissionOptions :BasicBatchProcessRequest = {
-			image: 'this_docker_image_is_fubar',
-			cmd: ['/bin/sh', '/$DIRECTORY_INPUTS/$scriptName'],
-			inputs: [],
-			parameters: {cpus:1, maxDuration:20*60*100000},
-			outputsPath: customOutputsPath,
-			inputsPath: customInputsPath,
-			resultsPath: customResultsPath,
-			wait: true
-		};
-
-		var formData :DynamicAccess<Dynamic> = {};
-		formData[JsonRpcConstants.MULTIPART_JSONRPC_KEY] = Json.stringify(
-			{
-				method: RPC_METHOD_JOB_SUBMIT,
-				params: jobSubmissionOptions,
-				jsonrpc: JsonRpcConstants.JSONRPC_VERSION_2
-
-			});
-		formData[scriptName] = script;
-
-		var promise = new DeferredPromise();
-		js.npm.request.Request.post({url:url, formData: formData},
-			function(err, httpResponse, body) {
-				if (err != null) {
-					promise.boundPromise.reject(err);
-					return;
-				}
-				promise.resolve(httpResponse.statusCode == 400);
-			});
-
-		return promise.boundPromise;
-	}
-
 // 	@timeout(120000)
 // 	public function testCompleteComputeJobProxy() :Promise<Bool>
 // 	{

@@ -8,7 +8,18 @@ services:
 
   server:
     environment:
-      - STORAGE_HTTP_PREFIX=http://dcc.local
+      - FLUENT_HOST=fluentd
+    depends_on:
+      - fluentd
+
+  worker1cpu:
+    environment:
+      - FLUENT_HOST=fluentd
+    depends_on:
+      - fluentd
+
+  worker1gpu:
+    environment:
       - FLUENT_HOST=fluentd
     depends_on:
       - fluentd
@@ -27,8 +38,7 @@ services:
   elasticsearch:
     image: elasticsearch:2.4.5-alpine
     ports:
-      - "127.0.0.1:9200:9200"
-      - "127.0.0.1:9300:9300"
+      - "127.0.0.1:${PORT_ES:-9200}:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
@@ -39,7 +49,7 @@ services:
   kibana:
     image: kibana:4.6.6
     ports:
-      - "127.0.0.1:5601:5601"
+      - "127.0.0.1:${PORT_KIBANA:-5601}:5601"
     environment:
       ELASTICSEARCH_URL: "http://elasticsearch:9200"
     networks:

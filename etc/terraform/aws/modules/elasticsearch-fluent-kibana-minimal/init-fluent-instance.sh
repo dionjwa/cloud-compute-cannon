@@ -9,7 +9,7 @@ version: '2'
 services:
   fluentd:
     restart: "always"
-    image: openfirmware/fluentd-elasticsearch
+    image: openfirmware/fluentd-elasticsearch:2.2.0-0.9.0
     ports:
       - "8888:8888"
       - "24224:24224"

@@ -1,3 +1,7 @@
+variable "name-prefix" {
+  default = ""
+}
+
 variable "region" {
   description = "AWS region"
 }
@@ -7,8 +11,6 @@ variable "instance_type" {
 }
 
 variable "vpc_id" {}
-
-# variable "vpc_security_group_ids" {}
 
 variable "subnet_id" {}
 

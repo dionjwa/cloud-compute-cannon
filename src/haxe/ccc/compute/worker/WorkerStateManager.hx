@@ -49,36 +49,6 @@ class WorkerStateManager
 								}
 							}
 						});
-
-						//Listen to the redis log channel and when there
-						//are new logs, grab them and forward them to the
-						//fluent daemon (since it is harder for the lambda
-						//scripts to send logs to fluent)
-						var logStream = createRedisLogStream(_injector);
-						logStream.then(function(logs) {
-							if (logs != null && logs.length > 0) {
-								for (logBlob in logs) {
-									try {
-										var level :String = logBlob.level;
-										//If you don't delete this field, bunyan will NOT log it
-										Reflect.deleteField(logBlob, 'level');
-										//Convert time float to Date object
-										if (Reflect.hasField(logBlob, 'time')) {
-											Reflect.setField(logBlob, 'time', Date.fromTime(Reflect.field(logBlob, 'time')));
-										}
-										switch(level) {
-											case RedisLoggerTools.REDIS_LOG_DEBUG: Log.debug(logBlob);
-											case RedisLoggerTools.REDIS_LOG_INFO: Log.info(logBlob);
-											case RedisLoggerTools.REDIS_LOG_WARN: Log.warn(logBlob);
-											case RedisLoggerTools.REDIS_LOG_ERROR: Log.error(logBlob);
-											default: Log.debug(logBlob);
-										}
-									} catch (err :Dynamic) {
-										Log.warn('Failed to log $logBlob\n err=${Json.stringify(err)}');
-									}
-								}
-							}
-						});
 						return true;
 					})
 					.pipe(function(_) {
@@ -178,7 +148,10 @@ class WorkerStateManager
 	{
 		return getWorkerId(injector)
 			.pipe(function(id) {
+				Assert.notNull(id, 'workerId is null');
 				injector.map(MachineId).toValue(id);
+				var retrievedWorkerId :MachineId = injector.getValue(MachineId);
+				Assert.notNull(retrievedWorkerId, 'retrievedWorkerId is null');
 				var docker = injector.getValue(Docker);
 				return DockerPromises.info(docker)
 					.pipe(function(dockerinfo) {
@@ -191,7 +164,19 @@ class WorkerStateManager
 							case AWS:
 						}
 
-						return WorkerStateRedis.initializeWorker(id, dockerinfo, ServerConfig.GPUS > 0 ? "1" : "0");
+						//If this value is set from the environment
+						//use it instead of the value from the docker
+						//daemon. This is only used for testing purposes.
+						if (ServerConfig.CPUS != null && ServerConfig.CPUS > 0) {
+							dockerinfo.NCPU = ServerConfig.CPUS;
+						}
+
+						//GPU jobs each implicitly require a CPU
+						if (ServerConfig.GPUS > 0) {
+							dockerinfo.NCPU = Math.ceil(Math.max(dockerinfo.NCPU - ServerConfig.GPUS, 0));
+						}
+
+						return WorkerStateRedis.initializeWorker(id, dockerinfo, ServerConfig.GPUS > 0 ? '${ServerConfig.GPUS}' : '0');
 					});
 			});
 	}
@@ -217,23 +202,6 @@ class WorkerStateManager
 		});
 		injector.map("promhx.Stream<ccc.WorkerState>", "WorkerStream").toValue(workerStatusStream);
 		return workerStatusStream;
-	}
-
-	static function createRedisLogStream(injector :Injector) :Stream<Array<Dynamic>>
-	{
-		var redis :RedisClient = injector.getValue(RedisClient);
-		var logStream :Stream<Array<Dynamic>> =
-			RedisTools.createStreamCustom(
-				redis,
-				RedisLoggerTools.REDIS_KEY_LOGS_CHANNEL,
-				function(ignored) {
-					return ccc.lambda.RedisLogGetter.getLogs();
-				}
-			);
-		logStream.catchError(function(err) {
-			Log.error({error:err, message: 'Failure on logStream'});
-		});
-		return logStream;
 	}
 
 

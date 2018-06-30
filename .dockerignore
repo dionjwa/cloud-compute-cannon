@@ -1,5 +1,4 @@
 Dockerfile
-ccc-local-storage
 *.sublime-*
 .aws
 .DS_Store
