@@ -12,7 +12,7 @@ services:
     depends_on:
       - redis
     ports:
-      - "8181:8081"
+      - "${PORT_REDIS_COMMANDER:-8081}:8081"
     logging:
         driver: none
 
@@ -24,7 +24,7 @@ services:
     depends_on:
       - redis
     ports:
-      - "4567:4567"
+      - "${PORT_REDIS_BULL:-4567}:4567"
     networks:
       - dcc
     logging:

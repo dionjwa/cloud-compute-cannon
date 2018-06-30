@@ -17,25 +17,12 @@ class StatusCircle
 	override public function render()
 	{
 		var jobState = this.props.jobState == null ? JobState.Waiting : this.props.jobState;
-
 		var color = switch(jobState) {
 			case Waiting: 'grey';
-			case Running,RunningPaused: 'blue';
+			case Running,RunningPaused: 'yellow';
 			case FinishedSuccess: 'green';
 			case FinishedError,Cancelled: 'red';
 		}
-
-		switch(jobState) {
-			case Waiting,Running,RunningPaused:
-				return jsx('
-					<div className="status-svg">
-						<CircularProgress size={38} style={{ color: "$color" }} />
-					</div>
-				');
-			case FinishedSuccess:
-				return jsx('<Icon className="status-svg" style={{ fontSize: 38, color: "$color" }} >done</Icon>');
-			case FinishedError,Cancelled:
-				return jsx('<Icon className="status-svg" style={{ fontSize: 38, color: "$color" }} >error</Icon>');
-		}
+		return jsx('<span className="icon"><i className="fas fa-circle" style={{ color: "$color" }} ></i></span>');
 	}
 }

@@ -6,7 +6,7 @@ resource "aws_elasticache_cluster" "default" {
   num_cache_nodes      = 1
   port                 = 6379
   subnet_group_name    = "${aws_elasticache_subnet_group.default.name}"
-  security_group_ids   = ["{aws_security_group.redis.id}"]
+  security_group_ids   = ["${aws_security_group.redis.id}"]
   parameter_group_name = "ccc.redis"
 }
 

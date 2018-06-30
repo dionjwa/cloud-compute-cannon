@@ -7,7 +7,7 @@ class ScalingServerConfig
 	 * CCC address for hitting the API
 	 */
 	@NodeProcessVar
-	public static var CCC :String;
+	public static var DCC :String = 'dcc.local';
 
 	@NodeProcessVar
 	public static var LOG_LEVEL :Int = 40;
@@ -28,7 +28,7 @@ class ScalingServerConfig
 	public static function toJson() :Dynamic
 	{
 		return {
-			'CCC': CCC,
+			'DCC': DCC,
 			'LOG_LEVEL': LOG_LEVEL,
 			'PORT': PORT,
 			'REDIS_HOST': REDIS_HOST,

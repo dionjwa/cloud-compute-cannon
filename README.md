@@ -1,4 +1,38 @@
-# Docker Cloud Compute [![Build Status](https://travis-ci.org/dionjwa/docker-cloud-compute.svg?branch=master)](https://travis-ci.org/dionjwa/docker-cloud-compute)
+# Docker Cloud Compute [![Build Status](https://travis-ci.org/dionjwa/docker-cloud-compute.svg?branch=master)]
+
+## Common Cogitai operations:
+
+**Deploy a new version:**
+
+- Update the version in the `Makefile`
+- `make tag`
+
+CircleCI will test and deploy the image.
+
+C3 will *not* be automatically updated, you need to manually update the version in C3 config.
+
+**Run the development stack:**
+
+If you are running into conflicting ports, create/modify `.env` and add the port variables for exposed services (see the docker-compose\*.yml files for the various ports exposed. E.g. (non-exhaustive):
+
+	TEST=true
+	TEST_SCALING=false
+	LOG_LEVEL=debug
+	PORT_API=8182
+	PORT_REDIS_COMMANDER=8183
+	PORT_REDIS_BULL=4568
+	PORT_PROMETHEUS=9099
+	PORT_GRAFANA=3030
+	PORT_KIBANA=5602
+	REDIS_LOG_DRIVER=none
+
+Then
+
+	make develop
+
+## Non-cogitai specific docs
+
+https://travis-ci.org/dionjwa/docker-cloud-compute)
 
 Docker Image: https://hub.docker.com/r/dionjwa/docker-cloud-compute
 

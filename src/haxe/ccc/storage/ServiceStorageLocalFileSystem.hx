@@ -194,15 +194,23 @@ class ServiceStorageLocalFileSystem
 	{
 		Assert.notNull(path);
 		path = getPath(path);
-		FsExtended.deleteFileSync(path);
-		return Promise.promise(true);
+		try {
+			FsExtended.deleteFileSync(path);
+			return Promise.promise(true);
+		} catch(err :Dynamic) {
+			return Promise.promise(false);
+		}
 	}
 
 	override public function deleteDir(?path :String) :Promise<Bool>
 	{
 		path = getPath(path);
-		FsExtended.deleteDirSync(path);
-		return Promise.promise(true);
+		try {
+			FsExtended.deleteDirSync(path);
+			return Promise.promise(true);
+		} catch(err :Dynamic) {
+			return Promise.promise(false);
+		}
 	}
 
 	override public function listDir(?path :String) :Promise<Array<String>>

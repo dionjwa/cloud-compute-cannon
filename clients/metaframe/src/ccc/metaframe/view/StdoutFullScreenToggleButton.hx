@@ -43,23 +43,24 @@ class StdoutFullScreenToggleButton
 		//raised={raised}
 		return jsx('
 			<div className="flex-child">
-				<Dialog
-					fullScreen={true}
-					open={isOpen}
-					onClose={this.handleClose}
-					>
-					<div style={styles.reverseScroll} >
-						<Button color="primary" onClick={this.handleClose}>
-							Close
-						</Button>
-						<StdoutText text={text} isStdErr={isStdErr} />
-					</div>
-				</Dialog>
-				 <Button onClick={this.handleOpen} >
-				 	$buttonText
-				 </Button>
+				
 			</div>
 		');
+		// <Dialog
+		// 			fullScreen={true}
+		// 			open={isOpen}
+		// 			onClose={this.handleClose}
+		// 			>
+		// 			<div style={styles.reverseScroll} >
+		// 				<Button color="primary" onClick={this.handleClose}>
+		// 					Close
+		// 				</Button>
+		// 				<StdoutText text={text} isStdErr={isStdErr} />
+		// 			</div>
+		// 		</Dialog>
+		// 		 <Button onClick={this.handleOpen} >
+		// 		 	$buttonText
+		// 		 </Button>
 	}
 
 	function handleOpen()

@@ -46,11 +46,6 @@ class ApplicationStore
 	static public function startup(store:Store<ApplicationState>)
 	{
 		store.dispatch(WebsocketAction.Connect);
-		// use regular 'store.dispatch' but passing Haxe Enums!
-		// store.dispatch(GalleryAction.Load)
-		// 	.then(function(_) {
-		// 		store.dispatch(MetapageListAction.Init);
-		// 	});
 	}
 
 }

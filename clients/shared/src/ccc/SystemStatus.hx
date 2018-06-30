@@ -23,6 +23,7 @@ typedef SystemWorkerStatus = {
 	var status :WorkerStatus;
 	var starts :Array<Dynamic>;
 	var finished :Int;
+	var lastJobTime :Float;
 }
 
 typedef SystemStatus = {

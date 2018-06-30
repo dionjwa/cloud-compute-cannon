@@ -18,9 +18,6 @@ import promhx.deferred.DeferredPromise;
  * same process as the worker.
  */
 
-// typedef JobTypes=EitherType<DockerBatchComputeJob,BatchProcessRequestTurboV2>;
-// typedef JobResults=EitherType<JobResult,JobResultsTurboV2>;
-
 typedef RedisConnection = {
 	var host :String;
 	@:optional var port :Int;
@@ -63,10 +60,11 @@ class QueueJobs
 	@inject('StatusStream') public var statusStream :Stream<ccc.JobStatsData>;
 	@inject('WorkerStream') public var _workerStream :Stream<ccc.WorkerState>;
 	@inject public var internalState :WorkerStateInternal;
-	@inject public var queuesAdd :ccc.compute.server.services.queue.Queues;
+	@inject public var queues :ccc.compute.server.services.queue.Queues;
 
 	public var queueProcess (default, null) :Queue<QueueJobDefinition,QueueJobResults>;
 	public var queueProcessGpu (default, null) :Queue<QueueJobDefinition,QueueJobResults>;
+	// public var messageQueue (default, null) :Queue<BullQueueSingleMessageQueueAction,String>;
 
 	public var cpus (get, null):Int;
 	var _cpus :Int = 1;
@@ -97,17 +95,6 @@ class QueueJobs
 	public function getQueues() :Promise<{cpu:BullJobCounts,gpu:BullJobCounts}>
 	{
 		return QueueTools.getQueueSizes(_injector);
-	}
-
-	/**
-	 * This adds the job to the queue, it does not add the
-	 * job to this instance.
-	 * @param job :QueueJobDefinition [description]
-	 */
-	public function add(job :QueueJobDefinition) :Promise<Bool>
-	{
-		var isGpu = job.parameters != null && job.parameters.gpu;
-		return QueueTools.addJobToQueue(isGpu ? queuesAdd.gpu : queuesAdd.cpu, job, log);
 	}
 
 	public function cancel(jobId :JobId) :Promise<Bool>
@@ -146,6 +133,7 @@ class QueueJobs
 
 	function jobProcesser(queueJob :Job<QueueJobDefinition>, done :Done2<QueueJobResults>) :Void
 	{
+		var workerId :MachineId = _injector.getValue(MachineId);
 		switch(queueJob.data.type) {
 			case compute:
 				//Cast it into the fully typed version for the compiler
@@ -157,7 +145,6 @@ class QueueJobs
 
 						if (!isJob) {
 							done(null, null);
-							traceYellow('No job for ${queuejob.data.id} it must have been cancelled+removed. Do not log this long term');
 							log.debug(LogFieldUtil.addJobEvent({jobId:queuejob.data.id, type:queueJob.data.type, reason:Type.enumConstructor(ProcessFinishReason.MissingJobDefinition)}, JobEventType.FINISHED));
 							return Promise.promise(true);
 						}
@@ -186,14 +173,15 @@ class QueueJobs
 									return JobStatsTools.jobEnqueued(jobId, null)
 										.then(function(newAttempt) {
 											log.info(LogFieldUtil.addJobEvent({jobId:jobId, attempt:newAttempt, type:queueJob.data.type}, JobEventType.RESTARTED));
-											log.info(LogFieldUtil.addJobEvent({jobId:jobId, attempt:newAttempt, type:queueJob.data.type, message:'retrying'}, JobEventType.ENQUEUED));
+											log.info(LogFieldUtil.addJobEvent({jobId:jobId, attempt:newAttempt, type:queueJob.data.type, message:'retrying', gpu:queueJob.data.parameters.gpu, cpu:queueJob.data.parameters.cpus}, JobEventType.ENQUEUED));
 											log.warn({message: 'Retrying!', previous_attempt:attempt, attempt:newAttempt});
 											var newQueueJob = Reflect.copy(queuejob.data);
 											newQueueJob.attempt = newAttempt;
 
-											var isGpu = queueJob.data.parameters != null  && queueJob.data.parameters.gpu;
-											var queue = isGpu ? queuesAdd.gpu : queuesAdd.cpu;
-											queue.add(newQueueJob, {removeOnComplete:true});
+											var isGpu = queueJob.data.parameters != null && queueJob.data.parameters.gpu > 0;
+											var queue = isGpu ? queues.gpu : queues.cpu;
+											Assert.notNull(queue);
+											queue.add(newQueueJob, {removeOnComplete:true, removeOnFail:true});
 											return true;
 										});
 								} else {
@@ -262,29 +250,43 @@ class QueueJobs
 				_cpus = dockerInfo.NCPU;
 				_gpus = ServerConfig.GPUS;
 
-				switch (ServerConfig.CLOUD_PROVIDER_TYPE) {
-					case Local: _cpus = 1;
-					default:
-				}
+				//Although the GPU queue and CPU queue are separate queues
+				//and running a GPU *technically* requires a CPU we assume
+				//that CPU usage for GPU jobs is a small proportion or negligible.
+				//More support of this position is that neither the CPU nor GPU
+				//are really being used while inputs/outputs are being copied
+				//This means that the total number of independent concurrent
+				//jobs for a GPU instance is GPUs+CPUs.
+				//For the case of running locally, just use env vars to set
+				//the processors without forcing anything here.
+
+				Assert.that(_cpus > 0 || _gpus > 0);
 
 				internalState.ncpus = _cpus;
+				internalState.ngpus = _gpus;
 
-				queueProcess = queuesAdd.cpu;
-				queueProcessGpu = queuesAdd.gpu;
+				queueProcess = queues.cpu;
+				queueProcessGpu = queues.gpu;
 
 				for (type in ['cpu','gpu']) {
 					var isGpu = type == 'gpu';
 
-					var localQueueProcess = isGpu ? queuesAdd.gpu : queuesAdd.cpu;
+					if (isGpu && _gpus <= 0) {
+						continue;
+					}
+
+					if (!isGpu && _cpus <= 0) {
+						continue;
+					}
+
+					var localQueueProcess = isGpu ? queues.gpu : queues.cpu;
+					var processorCount = isGpu ? _gpus : _cpus;
 
 					function processor(job, done) {
 						this.jobProcesser(job, done);
 					}
-					if (isGpu && _gpus > 0) {
-						localQueueProcess.process(_gpus, processor);
-					} else if (!isGpu) {
-						localQueueProcess.process(_cpus, processor);
-					}
+
+					localQueueProcess.process(processorCount, processor);
 
 					localQueueProcess.on(QueueEvent.Error, function(err) {
 						log.error({e:QueueEvent.Error, error:Json.stringify(err)});
@@ -335,21 +337,25 @@ class QueueJobs
 						log.debug({e:QueueEvent.Resumed, jobId:job.data.id});
 					});
 
-					localQueueProcess.on(QueueEvent.Cleaned, function(jobs) {
-						log.debug({e:QueueEvent.Cleaned, jobIds:jobs.map(function(j) return j.data.id).array()});
+					localQueueProcess.on(QueueEvent.Cleaned, function(jobs, unknown) {
+						//An external update changed the types to this callback.
+						//I don't know the signature to this event, the docs
+						//are vague, so disabling this until CON-481 is addressed,
+						//where this will be manually tested as part of integrating
+						//cleanup between bull and dcc
 						return null;
 					});
 				}
 
 				_workerStream.then(function(workerState :WorkerState) {
 					if (_isPaused && workerState.status == WorkerStatus.OK) {
-						Promise.whenAll([queuesAdd.cpu.resume(true).promhx(), queuesAdd.gpu.resume(true).promhx()])
+						Promise.whenAll([queues.cpu.resume(true).promhx(), queues.gpu.resume(true).promhx()])
 							.then(function(_) {
 								log.warn({paused:false, status:workerState.status, statusHealth:workerState.statusHealth });
 								_isPaused = false;
 							});
 					} else if (!_isPaused && workerState.status != WorkerStatus.OK) {
-						Promise.whenAll([queuesAdd.cpu.pause(true).promhx(), queuesAdd.gpu.pause(true).promhx()])
+						Promise.whenAll([queues.cpu.pause(true).promhx(), queues.gpu.pause(true).promhx()])
 							.then(function(_) {
 								log.warn({paused:true, status:workerState.status, statusHealth:workerState.statusHealth });
 								_isPaused = true;
@@ -361,29 +367,6 @@ class QueueJobs
 
 				_ready.resolve(true);
 			});
-
-		var messageQueue = new js.npm.bull.Bull.Queue(BullQueueNames.SingleMessageQueue, {redis:{port:redisPort, host:redisHost}});
-		function messageQueueHandler(job, done) {
-			var action :BullQueueSingleMessageQueueAction = job.data;
-			var handled = false;
-			switch(action.type) {
-				case log:
-					handled = true;
-					var logBlob :BullQueueSingleMessageQueueActionLog = action.data;
-					switch(logBlob.level) {
-						case 'debug': log.debug(logBlob.obj);
-						case 'info': log.info(logBlob.obj);
-						case 'warn': log.warn(logBlob.obj);
-						case 'error': log.error(logBlob.obj);
-						case 'critical': log.critical(logBlob.obj);
-						default: log.warn({message: 'unhandled error blob from redis', action:action});
-					}
-			}
-			if (!handled) {
-				log.warn({message: 'unhandled redis queue message', action:action});
-			}
-		}
-		messageQueue.process(1, messageQueueHandler);
 	}
 
 	function postQueueSize()
@@ -602,6 +585,7 @@ class JobProcessObject
 						})
 						.pipe(function(_) {
 							if (!_isFinished) {
+								Assert.notNull(_workerId);
 								log.info(LogFieldUtil.addJobEvent({attempt:attempt, worker:_workerId}, JobEventType.DEQUEUED));
 								return JobStatsTools.jobDequeued(jobId, attempt, _workerId)
 									.thenTrue();

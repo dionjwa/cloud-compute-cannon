@@ -1,8 +1,6 @@
 version: '2.3'
 
 volumes:
-  redis-data:
-    driver: local
   local-storage:
     driver: local
 
@@ -13,18 +11,17 @@ networks:
 services:
 
   server:
-    image: quay.io/bionano/docker-cloud-compute:dd574008
     depends_on:
       - redis
     working_dir: /app
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - local-storage:/app/local-storage
+      - local-storage:/jobs
     environment:
       - PORT=9000
       - STORAGE_HTTP_PREFIX=http://dcc.local
       - REDIS_HOST=redis
-      - LOG_LEVEL=info
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_STATUS_CHECK_INTERVAL_SECONDS=3000
     networks:
       - dcc
@@ -32,7 +29,9 @@ services:
   redis:
     image: redis:3.2.0-alpine
     command: redis-server /usr/local/etc/redis/redis.conf
-    networks:
-      - dcc
     volumes:
       - ./etc/redis/redis-dev.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - dcc
+    logging:
+      driver: ${REDIS_LOG_DRIVER:-none}

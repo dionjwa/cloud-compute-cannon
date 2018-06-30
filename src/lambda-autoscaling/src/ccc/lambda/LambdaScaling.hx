@@ -17,8 +17,27 @@ typedef ScaleResults = {
 class LambdaScaling
 {
 	var redis :RedisClient;
-	static var REDIS_KEY_LAST_SCALE_DOWN_TIME = 'ccc::last-scale-down-time';
-	static var REDIS_KEY_LAST_SCALE_DOWN_TIME_GPU = 'ccc::last-scale-down-time-gpu';
+	static var REDIS_KEY_LAST_SCALE_DOWN_TIME_CPU = 'dcc::last-scale-down-time-cpu';
+	static var REDIS_KEY_LAST_SCALE_DOWN_TIME_GPU = 'dcc::last-scale-down-time-gpu';
+
+	static function getIntEnvVar(name :String, defaultValue :Int) :Int
+	{
+		return Node.process.env.get(name) != null && Node.process.env.get(name) != ""
+		? Std.parseInt(Node.process.env.get(name))
+		: defaultValue;
+	}
+
+	public static var MINUTES_AFTER_LAST_JOB_REMOVE_WORKER_GPU :Int  = getIntEnvVar('MINUTES_AFTER_LAST_JOB_REMOVE_WORKER_GPU', 15);
+	public static var MINUTES_AFTER_LAST_JOB_REMOVE_WORKER_CPU :Int  = getIntEnvVar('MINUTES_AFTER_LAST_JOB_REMOVE_WORKER_CPU', 10);
+	public static var MIN_SCALE_DOWN_INTERVAL_CPU :Int  = getIntEnvVar('MIN_SCALE_DOWN_INTERVAL_CPU', 10);
+	public static var MIN_SCALE_DOWN_INTERVAL_GPU :Int  = getIntEnvVar('MIN_SCALE_DOWN_INTERVAL_GPU', 10);
+
+	/**
+	 * Logging each log statement separately actually make it more difficult to
+	 * follow when using the AWS console, or kibana. These logs need to be
+	 * packaged up into a single report UNLESS errors occur.
+	 */
+	var _report :{base:Array<String>,cpu:Array<String>,gpu:Array<String>};
 
 	static function getRedisClient(opts :RedisOptions) :Promise<RedisClient>
 	{
@@ -29,7 +48,6 @@ class LambdaScaling
 		var client = Redis.createClient(opts);
 		var promise = new DeferredPromise();
 		client.once(RedisEvent.Connect, function() {
-			trace({event:RedisEvent.Connect, redisParams:redisParams});
 			//Only resolve once connected
 			if (!promise.boundPromise.isResolved()) {
 				promise.resolve(client);
@@ -47,9 +65,6 @@ class LambdaScaling
 		});
 		client.on(RedisEvent.Reconnecting, function(msg) {
 			trace({event:'redis.${RedisEvent.Reconnecting}', delay:msg.delay, attempt:msg.attempt});
-		});
-		client.on(RedisEvent.End, function() {
-			trace({event:RedisEvent.End, redisParams:redisParams});
 		});
 
 		client.on(RedisEvent.Warning, function(warningMessage) {
@@ -70,7 +85,40 @@ class LambdaScaling
 		return this;
 	}
 
-	public function new() {}
+	public function new()
+	{
+		_report = {cpu:[], gpu:[], base:[]};
+	}
+
+	/**
+	 * See docs for the _report var
+	 */
+	public function log(type :AsgType, message :String, ?pos :haxe.PosInfos)
+	{
+		var locationString = '';
+		if (pos != null) {
+			locationString = '${pos.fileName}:${pos.lineNumber}';
+		}
+
+		message = '${locationString + " "}${message}';
+		switch(type) {
+			case CPU: _report.cpu.push(message);
+			case GPU: _report.gpu.push(message);
+			default:  _report.base.push(message);
+		}
+	}
+
+	/**
+	 * Finally log the details
+	 */
+	public function report()
+	{
+		//AWS lambda lots strip whitespace but I want these logs indented
+		var indent = '\n.   ';
+		var finalReport = '${_report.base.join("\n")}\nCPU:${indent}${_report.cpu.join(indent)}\nGPU:${indent}${_report.gpu.join(indent)}';
+		trace(finalReport);
+		redis.infoLog(finalReport, true);
+	}
 
 	public function traceJson<A>() :A->Promise<A>
 	{
@@ -85,7 +133,7 @@ class LambdaScaling
 
 	public function getJson() :Promise<Dynamic>
 	{
-		return getAllInstanceIds()
+		return getAllWorkerIds()
 			.pipe(function(instanceIds :Array<MachineId>) {
 				return RedisPromises.smembers(redis, WorkerStateRedis.REDIS_MACHINES_ACTIVE)
 					.pipe(function(dbMembersRedis) {
@@ -100,9 +148,9 @@ class LambdaScaling
 						var duplicatedMembers :Array<String> = instanceIds.concat(dbMembers);
 						var allMembers :Array<String> = ArrayTools.removeDuplicates(duplicatedMembers);
 
-						trace('instanceIds=${instanceIds}');
-						trace('dbMembers=${dbMembers}');
-						trace('allMembers=${allMembers}');
+						// trace('instanceIds=${instanceIds}');
+						// trace('dbMembers=${dbMembers}');
+						// trace('allMembers=${allMembers}');
 						return Promise.whenAll(allMembers.map(function(id) {
 							return getInstancesHealthStatus(id)
 								.pipe(function(status) {
@@ -150,7 +198,7 @@ class LambdaScaling
 			});
 	}
 
-	public function scale() :Promise<ScaleResults>
+	public function scale() :Promise<Bool>
 	{
 		return Promise.promise(true)
 			.pipe(function(_) {
@@ -161,36 +209,11 @@ class LambdaScaling
 				function scaleInternal(type :AsgType) {
 					return scaleUp(type)
 						.pipe(function(wasScaleUpAction) {
-							var result :ScaleResult = {
-								scaleUp: wasScaleUpAction,
-								scaleDown: false,
-								cleanup: false
-							}
 							if (wasScaleUpAction) {
 								//Don't scale down if there was a scale up
-								return Promise.promise(result);
+								return Promise.promise(wasScaleUpAction);
 							} else {
-								//Check the last time a scale down action occured
-								return getLastScaleDownTime(type)
-									.pipe(function(lastScaleDownTime) {
-										var now = Date.now().getTime();
-										var doScaleDown = lastScaleDownTime == null
-											|| (now - lastScaleDownTime) >= (15*60*1000);
-										if (doScaleDown) {
-											trace('type=$type Scaling down bc now=$now lastScaleDownTime=$lastScaleDownTime diff=${now - lastScaleDownTime}');
-											return scaleDown(type);
-										} else {
-											trace('type=$type NOT Scaling down bc now=$now lastScaleDownTime=$lastScaleDownTime diff=${now - lastScaleDownTime}');
-											return Promise.promise(false);
-										}
-									})
-									.pipe(function(didDownScale) {
-										result.scaleDown = didDownScale;
-										return setLastScaleDownTime(type)
-											.then(function(_) {
-												return result;
-											});
-									});
+								return scaleDown(type);
 							}
 						});
 				}
@@ -200,24 +223,20 @@ class LambdaScaling
 					scaleInternal(AsgType.GPU),
 				])
 				.then(function(scaleResults) {
-					return {
-						cpu: scaleResults[0],
-						gpu: scaleResults[1],
-					};
+					log(null, 'scaleResults=${scaleResults}');
+					//Return true if scaled up or down
+					return scaleResults[0] || scaleResults[1];
 				});
 			})
-			.pipe(function(scaleResults) {
-				if (scaleResults.cpu.scaleUp || scaleResults.cpu.scaleDown || scaleResults.gpu.scaleUp || scaleResults.gpu.scaleDown) {
-					return Promise.promise(scaleResults);
+			.pipe(function(scaledUpOrDown) {
+				//Only run postchecks if we didn't scale up or down
+				log(null, 'scaledUpOrDown=$scaledUpOrDown');
+				if (scaledUpOrDown) {
+					return Promise.promise(true);
 				} else {
 					return Promise.promise(true)
 						.pipe(function(_) {
 							return postChecks();
-						})
-						.then(function(_) {
-							scaleResults.cpu.cleanup = true;
-							scaleResults.gpu.cleanup = true;
-							return scaleResults;
 						});
 				}
 			});
@@ -225,32 +244,32 @@ class LambdaScaling
 
 	public function scaleDown(type :AsgType) :Promise<Bool>
 	{
-		return Promise.promise(true)
-			.pipe(function(_) {
-				return getQueueSize(type);
-			})
-			.pipe(function(queueLength) {
-				redis.debugLog({queueLength:queueLength});
-				if (queueLength == 0) {
+		log(type, 'scaleDown');
+		return isReadyToScaleDown(type)
+			.pipe(function(canScaleDown) {
+				if (canScaleDown) {
 					return getMinMaxDesired(type)
 						.pipe(function(minMax) {
-							redis.debugLog({minMax:minMax});
 							var NewDesiredCapacity = minMax.MinSize;
 
 							if (minMax.DesiredCapacity - NewDesiredCapacity > 0) {
+
 								redis.infoLog({
 									op: 'ScaleDown',
 									current: minMax,
-									queueLength: queueLength,
 									NewDesiredCapacity: NewDesiredCapacity,
 									instancesToKill: minMax.DesiredCapacity - NewDesiredCapacity
-								}.add(LogEventType.WorkersDesiredCapacity));
+								}.add(LogEventType.WorkersScaleDown).addWorkerEvent(WorkerEventType.SCALE_DOWN), true);
+
+								log(type, 'max=${minMax.MaxSize} min=${minMax.MinSize} NewDesiredCapacity=${NewDesiredCapacity} instancesToKill=${minMax.DesiredCapacity - NewDesiredCapacity}');
 								return setDesiredCapacity(type, NewDesiredCapacity)
 									.pipe(function(resultStatememt) {
-										redis.infoLog(resultStatememt);
-										return Promise.promise(true);
+										log(type, 'resultStatememt=${resultStatememt}');
+										redis.infoLog(resultStatememt, true);
+										return setLastScaleDownTime(type);
 									});
 							} else {
+								log(type, 'NewDesiredCapacity=$NewDesiredCapacity currentDesiredCapacity=${minMax.DesiredCapacity}');
 								return Promise.promise(false);
 							}
 						});
@@ -262,13 +281,13 @@ class LambdaScaling
 
 	public function scaleUp(type :AsgType) :Promise<Bool>
 	{
+		log(type, 'scaleUp');
 		return Promise.promise(true)
 			.pipe(function(_) {
 				return getQueueSize(type);
 			})
 			.pipe(function(queueLength) {
-				trace('scaleUp ok getQueueSize=$queueLength');
-				redis.infoLog({queueLength:queueLength});
+				log(type, 'queueLength=${queueLength}');
 				if (queueLength > 0) {
 					return getMinMaxDesired(type)
 						.pipe(function(minMax) {
@@ -279,22 +298,24 @@ class LambdaScaling
 							//This logic could probably be tweaked
 							//If we have at least one in the queue, increase
 							//the DesiredCapacity++
-							redis.debugLog({
-								op: 'ScaleUp',
-								MinSize: minMax.MinSize,
-								MaxSize: minMax.MaxSize,
-								DesiredCapacity: minMax.DesiredCapacity,
-								queueLength: queueLength
-							});
+							// redis.debugLog({
+							// 	op: 'ScaleUp',
+							// 	MinSize: minMax.MinSize,
+							// 	MaxSize: minMax.MaxSize,
+							// 	DesiredCapacity: minMax.DesiredCapacity,
+							// 	queueLength: queueLength
+							// });
 
 
 							var currentDesiredCapacity = minMax.DesiredCapacity;
 							var newDesiredCapacity = currentDesiredCapacity + 1;
-							redis.infoLog({newDesiredCapacity:newDesiredCapacity});
+							var message = 'max=${minMax.MaxSize} min=${minMax.MinSize} new=${newDesiredCapacity} current=${currentDesiredCapacity}';
+							log(type, message);
 							if (newDesiredCapacity <= minMax.MaxSize && minMax.DesiredCapacity < minMax.MaxSize) {
+								redis.infoLog({type:type, message:message}.addWorkerEvent(WorkerEventType.SCALE_UP), true);
 								return setDesiredCapacity(type, newDesiredCapacity)
 									.pipe(function(resultStatememt) {
-										trace(resultStatememt);
+										log(type, 'resultStatememt=${resultStatememt}');
 										return Promise.promise(true);
 									});
 							} else {
@@ -309,7 +330,7 @@ class LambdaScaling
 
 	public function terminateWorker(id :MachineId) :Promise<Bool>
 	{
-		traceYellow('terminateWorker=$id');
+		log(null, 'WorkerStateRedis.terminate $id');
 		return WorkerStateRedis.terminate(redis, id)
 			.thenTrue();
 	}
@@ -320,24 +341,85 @@ class LambdaScaling
 		return Promise.promise('override');
 	}
 
-	function getLastScaleDownTime(type :AsgType) :Promise<Float>
+	function getTimeLastJobFinished(type :AsgType) :Promise<Float>
 	{
-		var key = type == AsgType.GPU ? REDIS_KEY_LAST_SCALE_DOWN_TIME_GPU : REDIS_KEY_LAST_SCALE_DOWN_TIME;
-		return RedisPromises.get(redis, key)
-			.then(function(timeString) {
-				return timeString != null ? Std.parseFloat(timeString) : null;
+		var queueName = switch(type) {
+			case CPU: BullQueueNames.JobQueue;
+			case GPU: BullQueueNames.JobQueueGpu;
+			default: throw 'Unsupported type=$type';
+		};
+		return RedisPromises.hget(redis, REDIS_HASH_TIME_LAST_JOB_FINISHED, queueName)
+			.then(function(time) {
+				if (time != null && time != "") {
+					return Std.parseFloat(time);
+				} else {
+					return 0;
+				}
+			});
+	}
+
+	function isTimeSinceLastJobExceedingMinimum(type :AsgType) :Promise<Bool>
+	{
+		return getTimeLastJobFinished(type)
+			.then(function(jobFinishedTime) {
+				jobFinishedTime = jobFinishedTime == -1 ? 0 : jobFinishedTime;
+				var minIntervalMs = (type == AsgType.CPU ? MINUTES_AFTER_LAST_JOB_REMOVE_WORKER_CPU : MINUTES_AFTER_LAST_JOB_REMOVE_WORKER_GPU) * 60 * 1000;
+				var now = Date.now().getTime();
+				var interval = now - jobFinishedTime;
+				var isWithingRange = interval > minIntervalMs;
+				log(type, 'isWithingRange=${isWithingRange}, last job ${PrettyMs.pretty(interval)} ago, min interval=${PrettyMs.pretty(minIntervalMs)}, jobFinishedTime=${jobFinishedTime}');
+				return isWithingRange;
+			});
+	}
+
+	function isReadyToScaleDown(type :AsgType) :Promise<Bool>
+	{
+		return getQueueSize(type)
+			.pipe(function(queueLength) {
+				log(type, 'queueLength=${queueLength}');
+				if (queueLength > 0) {
+					return Promise.promise(false);
+				} else {
+					return isTimeSinceLastJobExceedingMinimum(type)
+					;
+				}
+			})
+			.pipe(function(isLastJobTimeLongAgoEnough) {
+				log(type, 'isLastJobTimeLongAgoEnough=${isLastJobTimeLongAgoEnough}');
+				if (!isLastJobTimeLongAgoEnough) {
+					return Promise.promise(false);
+				} else {
+					return isLastScaleDownTimeOverMinimum(type);
+				}
 			});
 	}
 
 	function setLastScaleDownTime(type :AsgType) :Promise<Bool>
 	{
-		var key = type == AsgType.GPU ? REDIS_KEY_LAST_SCALE_DOWN_TIME_GPU : REDIS_KEY_LAST_SCALE_DOWN_TIME;
-		return RedisPromises.set(redis, key, '${Date.now().getTime()}');
+		var key = type == AsgType.GPU ? REDIS_KEY_LAST_SCALE_DOWN_TIME_GPU : REDIS_KEY_LAST_SCALE_DOWN_TIME_CPU;
+		return RedisPromises.set(redis, key, '${Date.now().getTime()}').thenTrue();
+	}
+
+	function isLastScaleDownTimeOverMinimum(type :AsgType) :Promise<Bool>
+	{
+		var key = type == AsgType.GPU ? REDIS_KEY_LAST_SCALE_DOWN_TIME_GPU : REDIS_KEY_LAST_SCALE_DOWN_TIME_CPU;
+		return RedisPromises.get(redis, key)
+			.then(function(timeString) {
+				var lastScaleDownTime = timeString == null ? 0 : Std.parseFloat(timeString);
+				var msMinInterval = (switch(type) {
+					case CPU: MIN_SCALE_DOWN_INTERVAL_CPU;
+					case GPU: MIN_SCALE_DOWN_INTERVAL_GPU;
+					case SERVER: throw 'Cannot ever be here';
+				}) * 60 * 1000;
+				var scaledDownIntervalLongEnough = (Date.now().getTime() - lastScaleDownTime) > msMinInterval;
+				log(type, 'scaledDownIntervalLongEnough=${scaledDownIntervalLongEnough} msMinInterval=${PrettyMs.pretty(msMinInterval)} lastScaleDownTime=${PrettyMs.pretty(lastScaleDownTime)}');
+				return scaledDownIntervalLongEnough;
+			});
 	}
 
 	function updateActiveWorkerIdsInRedis() :Promise<Bool>
 	{
-		return getAllInstanceIds()
+		return getAllWorkerAndServerIds()
 			.pipe(function(instanceIds) {
 				var promise = new promhx.deferred.DeferredPromise();
 				var commands :Array<Array<String>> = [];
@@ -359,14 +441,15 @@ class LambdaScaling
 
 	function removeWorkersInActiveSetThatAreNotRunning() :Promise<Bool>
 	{
-		return getAllInstanceIds()
+		return getAllWorkerIds()
 			.pipe(function(instanceIds) {
 				return RedisPromises.smembers(redis, WorkerStateRedis.REDIS_MACHINES_ACTIVE)
 					.pipe(function(dbMembers) {
 						var promises = [];
 						for (dbInstanceId in dbMembers) {
 							if (!instanceIds.has(dbInstanceId)) {
-								redis.debugLog({message:'$dbInstanceId not running, removing from active set'});
+								log(null, '$dbInstanceId not running, removing from active set');
+								redis.debugLog({message:'$dbInstanceId not running, removing from active set'}, true);
 								promises.push(RedisPromises.srem(redis, WorkerStateRedis.REDIS_MACHINES_ACTIVE, dbInstanceId));
 							}
 						}
@@ -374,19 +457,6 @@ class LambdaScaling
 							.thenTrue();
 					});
 			});
-	}
-
-	/**
-	 * Returns the actual ids of workers removed
-	 * since you cannot remove workers with jobs
-	 * running
-	 * @param  maxWorkersToRemove :Int          [description]
-	 * @return                    [description]
-	 */
-	public function removeIdleWorkers(type :AsgType, maxWorkersToRemove :Int) :Promise<Array<String>>
-	{
-		throw 'override removeIdleWorkers';
-		return Promise.promise([]);
 	}
 
 	function getMinMaxDesired(type :AsgType) :Promise<MinMaxDesired>
@@ -397,14 +467,14 @@ class LambdaScaling
 
 	function removeUnhealthyWorkers(type :AsgType) :Promise<Bool>
 	{
-		redis.infoLog('removeUnhealthyWorkers');
+		// redis.infoLog('removeUnhealthyWorkers');
 		return getInstanceIds(type)
 			.pipe(function(instanceIds) {
-				trace('instanceIds=$instanceIds');
+				// trace('instanceIds=$instanceIds');
 				var promises = instanceIds.map(function(instanceId) {
 					return isInstanceHealthy(instanceId)
 						.pipe(function(isHealthy) {
-							trace('instanceId=$instanceId isHealthy=$isHealthy');
+							// trace('instanceId=$instanceId isHealthy=$isHealthy');
 							if (!isHealthy) {
 								//Double check, if the instance just started, it may not have had time
 								//to initialize
@@ -412,10 +482,11 @@ class LambdaScaling
 									.pipe(function(timeMilliseconds) {
 										var timeSeconds = timeMilliseconds / 1000;
 										if (timeSeconds < 600) {//10mins
-											redis.debugLog({instanceId:instanceId, message:'Not terminating potentially sick worker since it just stared up $instanceId'});
+											// redis.debugLog({instanceId:instanceId, message:'Not terminating potentially sick worker since it just stared up $instanceId'});
 											return Promise.promise(true);
 										} else {
-											redis.infoLog(LogFieldUtil.addWorkerEvent({instanceId:instanceId, message:'Terminating ${instanceId}'}, WorkerEventType.TERMINATE));
+											log(type, 'removeUnhealthyWorkers terminating instanceId=$instanceId isHealthy=$isHealthy TimeSecondsSinceInstanceStarted=${timeSeconds}');
+											redis.infoLog(LogFieldUtil.addWorkerEvent({type:type, instanceId:instanceId, message:'Terminating ${instanceId}'}, WorkerEventType.TERMINATE), true);
 											return terminateWorker(instanceId)
 												.errorPipe(function(err) {
 													redis.errorLog({error:err});
@@ -458,6 +529,7 @@ class LambdaScaling
 		var key = switch(type) {
 			case CPU: 'bull:${BullQueueNames.JobQueue}:wait';
 			case GPU: 'bull:${BullQueueNames.JobQueueGpu}:wait';
+			case SERVER: throw 'Servers do not have queues';
 		};
 		redis.llen(key, function(err, length) {
 			if (err != null) {
@@ -515,43 +587,6 @@ class LambdaScaling
 		return promise.boundPromise;
 	}
 
-	function getInstancesReadyForTermination(type :AsgType) :Promise<Array<MachineId>>
-	{
-		redis.infoLog({f:'getInstancesReadyForTermination'});
-		var workersReadyToDie :Array<String> = [];
-
-		return getInstanceIds(type)
-			.pipe(function(instanceIds) {
-				redis.debugLog({f:'getInstancesReadyForTermination', instanceIds: instanceIds});
-				var promises = instanceIds.map(function(instanceId) {
-					redis.debugLog({f:'getInstancesReadyForTermination', instanceId: instanceId});
-					return getJobCount(instanceId)
-						.pipe(function(count) {
-							redis.debugLog({f:'getInstancesReadyForTermination', instanceId: instanceId, jobs:count});
-							if (count == 0) {
-								return isInstanceCloseEnoughToBillingCycle(instanceId)
-									.then(function(okToTerminate) {
-										if (okToTerminate) {
-											workersReadyToDie.push(instanceId);
-										} else {
-											redis.debugLog({f:'getInstancesReadyForTermination', instanceId: instanceId, message:'NOT because too close to billing cycle'});
-										}
-										return true;
-									});
-							} else {
-								redis.debugLog({f:'getInstancesReadyForTermination', instanceId: instanceId, message:'NOT because job count=${count}'});
-								return Promise.promise(true);
-							}
-						});
-				});
-				return Promise.whenAll(promises);
-			})
-			.then(function(_) {
-				redis.debugLog({workersReadyToDie: workersReadyToDie});
-				return workersReadyToDie;
-			});
-	}
-
 	function getTimeSinceInstanceStarted(id :MachineId) :Promise<Float>
 	{
 		throw 'override getTimeSinceInstanceStarted';
@@ -562,7 +597,7 @@ class LambdaScaling
 	 * All, including GPU instances
 	 * @return [description]
 	 */
-	function getAllInstanceIds() :Promise<Array<String>>
+	function getAllWorkerIds() :Promise<Array<String>>
 	{
 		return getInstanceIds(AsgType.CPU)
 			.pipe(function(idsCpu) {
@@ -573,17 +608,20 @@ class LambdaScaling
 			});
 	}
 
+	function getAllWorkerAndServerIds() :Promise<Array<String>>
+	{
+		return getInstanceIds(AsgType.SERVER)
+			.pipe(function(idsServer) {
+				return getAllWorkerIds()
+					.then(function(idsWorkers) {
+						return ArrayTools.removeDuplicates(idsServer.concat(idsWorkers));
+					});
+			});
+	}
+
 	function getInstanceIds(type :AsgType) :Promise<Array<String>>
 	{
 		throw 'override getInstanceIds';
 		return Promise.promise([]);
 	}
-
-	function isInstanceCloseEnoughToBillingCycle(instanceId :String) :Promise<Bool>
-	{
-		throw 'override isInstanceCloseEnoughToBillingCycle';
-		return Promise.promise(true);
-	}
-
-
 }

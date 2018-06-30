@@ -8,33 +8,45 @@ using ccc.RedisLoggerTools;
 class LambdaScalingAws
 	extends LambdaScaling
 {
-	static var REDIS_HOST :String  = Node.process.env.get('REDIS_HOST');
-	static var ASG_NAME :String  = Node.process.env.get('ASG_NAME');
-	static var ASG_GPU_NAME :String  = Node.process.env.get('ASG_GPU_NAME');
+	/** "" is converted to null */
+	static function getStringEnvVar(name :String) :String
+	{
+		return Node.process.env.get(name) != null && Node.process.env.get(name) != ""
+		? Node.process.env.get(name)
+		: null;
+	}
+
+	static var REDIS_HOST :String  = getStringEnvVar('REDIS_HOST');
+	static var ASG_NAME :String  = getStringEnvVar('ASG_NAME');
+	static var ASG_GPU_NAME :String  = getStringEnvVar('ASG_GPU_NAME');
+	static var ASG_NAME_SERVER :String  = getStringEnvVar('ASG_NAME_SERVER');
+
+	static var autoscaling = new AutoScaling();
+	static var ec2 = new EC2();
+
 	var _AutoScalingGroupCpu :AutoScalingGroup = null;
 	var _AutoScalingGroupGpu :AutoScalingGroup = null;
-
-	var autoscaling = new AutoScaling();
-	var ec2 = new EC2();
+	var _AutoScalingGroupServer :AutoScalingGroup = null;
 
 	@:expose('handlerScale')
 	static function handlerScale(event :Dynamic, context :Dynamic, callback :js.Error->Dynamic->Void) :Void
 	{
-		trace('initializing redis and getting asg');
 		var redis :RedisClient;
 		var calledBack = false;
+
+		var scaler = new LambdaScalingAws();
+
 		LambdaScaling.getRedisClient({host:REDIS_HOST, port:6379})
 			.pipe(function(client) {
 				redis = client;
-				trace('Got redis client!');
 
-				var scaler = new LambdaScalingAws().setRedis(redis);
+				scaler.setRedis(redis);
 
 				return scaler.scale()
-					.then(function(scaleResult) {
-						trace('finished scaleResult=${Json.stringify(scaleResult)}');
+					.then(function(_) {
+						scaler.log(null, 'Finished successfully');
+						scaler.report();
 						try {
-							redis.infoLog({message:'Finished successfully', scaleResult: scaleResult});
 							if (!calledBack) {
 								redis.publish(RedisLoggerTools.REDIS_KEY_LOGS_CHANNEL, 'logs');
 								redis.quit();
@@ -44,17 +56,20 @@ class LambdaScalingAws
 						}
 						if (!calledBack) {
 							calledBack = true;
-							callback(null, 'finished ${Json.stringify(scaleResult)}');
+							callback(null, 'OK');
 						}
 					});
 			})
 			.catchError(function(err) {
-				trace('ERROR ' + err);
+				scaler.log(null, '!Error:${err}');
+				scaler.report();
 				try {
-					redis.infoLog({message:'Finished with error'});
-					redis.errorEventLog(cast err);
-					redis.publish(RedisLoggerTools.REDIS_KEY_LOGS_CHANNEL, 'logs');
-					redis.quit();
+					if (redis != null) {
+						// redis.infoLog({message:'Finished with error'});
+						redis.errorEventLog(cast err);
+						redis.publish(RedisLoggerTools.REDIS_KEY_LOGS_CHANNEL, 'logs');
+						redis.quit();
+					}
 				} catch(err :Dynamic) {
 					//Ignored
 					trace(err);
@@ -84,47 +99,17 @@ class LambdaScalingAws
 					DesiredCapacity: desiredWorkerCount,
 					HonorCooldown: true
 				};
-				redis.infoLog(LogFieldUtil.addWorkerEvent(Reflect.copy(params), WorkerEventType.SET_WORKER_COUNT));
+				log(type, 'setDesiredCapacity({ DesiredCapacity:${desiredWorkerCount} })');
+				redis.infoLog(LogFieldUtil.addWorkerEvent(Reflect.copy(params), WorkerEventType.SET_WORKER_COUNT), true);
 				autoscaling.setDesiredCapacity(params, function(err, data) {
 					if (err != null) {
 						promise.boundPromise.reject(err);
 					} else {
-						promise.resolve('type=$type Increased DesiredCapacity ${asg.DesiredCapacity} => ${desiredWorkerCount}');
+						log(type, 'setDesiredCapacity result ${asg.DesiredCapacity}=>${desiredWorkerCount} ${Json.stringify(data)}');
+						promise.resolve('type=$type DesiredCapacity ${asg.DesiredCapacity} => ${desiredWorkerCount}');
 					}
 				});
 				return promise.boundPromise;
-			});
-	}
-
-	/**
-	 * This does not remove workers with running jobs
-	 * @return [description]
-	 */
-	function scaleDownToMinimumWorkers(type :AsgType)
-	{
-		return getAutoScalingGroup(type)
-			.pipe(function(asg) {
-				if (asg == null) {
-					return Promise.promise('No ASG type=$type, ignoring scaleDownToMinimumWorkers');
-				}
-				var NewDesiredCapacity = asg.MinSize;
-				var instancesToKill = asg.DesiredCapacity - NewDesiredCapacity;
-				redis.debugLog({
-					op: "ScaleDown",
-					MinSize: asg.MinSize,
-					MaxSize: asg.MaxSize,
-					DesiredCapacity: asg.DesiredCapacity,
-					NewDesiredCapacity: NewDesiredCapacity,
-					instancesToKill: asg.DesiredCapacity - NewDesiredCapacity
-				});
-				if (instancesToKill > 0) {
-					return removeIdleWorkers(type, instancesToKill)
-						.then(function(actualInstancesKilled) {
-							return "Actual instaces killed: " + Json.stringify(actualInstancesKilled);
-						});
-				} else {
-					return Promise.promise("No change needed");
-				}
 			});
 	}
 
@@ -181,92 +166,82 @@ class LambdaScalingAws
 
 	function getAutoScalingGroup(type :AsgType) :Promise<AutoScalingGroup>
 	{
-		if (type == AsgType.CPU && _AutoScalingGroupCpu != null) {
-			return Promise.promise(_AutoScalingGroupCpu);
-		} else if (type == AsgType.GPU && _AutoScalingGroupGpu != null) {
-			return Promise.promise(_AutoScalingGroupGpu);
-		} else {
-			if (type == AsgType.CPU && !isValidAsgName(ASG_NAME)) {
-				return Promise.promise(null);
+		if (type == null) {
+			throw 'getAutoScalingGroup type ==  null';
+		}
+
+		//Quickly return under some conditions
+		switch(type) {
+			case CPU:
+				if (!isValidAsgName(ASG_NAME)) {
+					return Promise.promise(null);
+				} else if (_AutoScalingGroupCpu != null) {
+					return Promise.promise(_AutoScalingGroupCpu);
+				}
+			case GPU:
+				if (!isValidAsgName(ASG_GPU_NAME)) {
+					return Promise.promise(null);
+				} else if (_AutoScalingGroupGpu != null) {
+					return Promise.promise(_AutoScalingGroupGpu);
+				}
+			case SERVER:
+				if (!isValidAsgName(ASG_NAME_SERVER)) {
+					return Promise.promise(null);
+				} else if (_AutoScalingGroupServer != null) {
+					return Promise.promise(_AutoScalingGroupServer);
+				}
+		}
+
+		var promise = new DeferredPromise();
+		var params :DescribeAutoScalingGroupsParams = {
+			AutoScalingGroupNames: [ switch(type) {
+				case CPU: ASG_NAME;
+				case GPU: ASG_GPU_NAME;
+				case SERVER: ASG_NAME_SERVER;
+			}]
+		};
+
+		var isResolved = false;
+		var cleanup = null;
+		var timeoutTimeMilliseconds = 30000;
+		var timeoutId = Node.setTimeout(function() {
+			cleanup(new js.Error('describeAutoScalingGroups timed out after ${timeoutTimeMilliseconds}ms'), null);
+		}, timeoutTimeMilliseconds);//Timeout after 15 seconds
+
+		cleanup = function(err, data) {
+			if (isResolved) {
+				return;
 			}
-			if (type == AsgType.GPU && !isValidAsgName(ASG_GPU_NAME)) {
-				return Promise.promise(null);
-			}
-
-			var promise = new DeferredPromise();
-			var params :DescribeAutoScalingGroupsParams = {
-				AutoScalingGroupNames: [ type == AsgType.CPU ? ASG_NAME : ASG_GPU_NAME ]
-			};
-			redis.infoLog(params);
-			redis.infoLog('autoscaling.describeAutoScalingGroups');
-
-			var isResolved = false;
-			var cleanup = null;
-			var timeoutId = Node.setTimeout(function() {
-				trace('describeAutoScalingGroups timed out');
-				cleanup(new js.Error('describeAutoScalingGroups timed out'), null);
-			}, 15000);//Timeout after 15 seconds
-
-			cleanup = function(err, data) {
-				if (isResolved) {
-					return;
-				}
-				if (err != null) {
-					promise.boundPromise.reject(err);
-				} else {
-					promise.resolve(data);
-				}
-				isResolved = true;
-				if (timeoutId != null) {
-					Node.clearTimeout(timeoutId);
-				}
+			isResolved = true;
+			if (timeoutId != null) {
+				Node.clearTimeout(timeoutId);
 				timeoutId = null;
 			}
-			autoscaling.describeAutoScalingGroups(params, function(err, data) {
-				trace('describeAutoScalingGroups returned');
-				if (err != null) {
-					trace('error, rejecting');
-					trace(err);
-					redis.errorEventLog(err);
-					cleanup(err, null);
-					return;
-				}
-				redis.infoLog('describeAutoScalingGroups data=${Json.stringify(data).substr(0, 100)}');
-				redis.infoLog('describeAutoScalingGroups err=$err');
-				var asgs = data.AutoScalingGroups != null ? data.AutoScalingGroups : [];
-				var asg = asgs[0];
-				if (asg != null) {
-					switch(type) {
-						case CPU: _AutoScalingGroupCpu = asg;
-						case GPU: _AutoScalingGroupGpu = asg;
-					}
-				}
-				redis.infoLog({cccAutoScalingGroup: asg});
-				cleanup(null, asg);
-			});
-
-			return promise.boundPromise;
+			if (err != null) {
+				promise.boundPromise.reject(err);
+			} else {
+				promise.resolve(data);
+			}
 		}
-	}
-
-	function getInstanceMinutesBillingCycleRemaining(instanceId :MachineId) :Promise<Float>
-	{
-		return getInstanceInfo(instanceId)
-			.then(function(info) {
-				var remainingMinutes = null;
-				if (info != null) {
-					var launchDate = Date.fromTime(info.LaunchTime);
-					var instanceTime = launchDate.getTime();
-					var now = Date.now().getTime();
-					var diff = now - instanceTime;
-					var seconds = diff / 1000;
-					var minutes = seconds / 60;
-					var hours = minutes / 60;
-					var minutesBillingCycle = minutes % 60;
-					remainingMinutes = 60 - minutesBillingCycle;
+		autoscaling.describeAutoScalingGroups(params, function(err, data) {
+			if (err != null) {
+				redis.errorLog('describeAutoScalingGroups err=$err');
+				cleanup(err, null);
+				return;
+			}
+			var asgs = data.AutoScalingGroups != null ? data.AutoScalingGroups : [];
+			var asg = asgs[0];
+			if (asg != null) {
+				switch(type) {
+					case CPU: _AutoScalingGroupCpu = asg;
+					case GPU: _AutoScalingGroupGpu = asg;
+					case SERVER: _AutoScalingGroupServer = asg;
 				}
-				return remainingMinutes;
-			});
+			}
+			cleanup(null, asg);
+		});
+
+		return promise.boundPromise;
 	}
 
 	override function getTimeSinceInstanceStarted(instanceId :MachineId) :Promise<Float>
@@ -276,10 +251,10 @@ class LambdaScalingAws
 				if (info == null) {
 					return -1.0;
 				}
-				trace('getTimeSinceInstanceStarted $instanceId ${Json.stringify(info, null, "  ")}');
-				// var launchTime = Date.fromTime(info.LaunchTime);
 				var now = Date.now().getTime();
-				return now - info.LaunchTime;
+				var ageInMilliseconds = now - info.LaunchTime;
+				log(null, '$instanceId age=${PrettyMs.pretty(ageInMilliseconds)}');
+				return ageInMilliseconds;
 			});
 	}
 
@@ -315,68 +290,13 @@ class LambdaScalingAws
 		}
 	}
 
-	override function isInstanceCloseEnoughToBillingCycle(instanceId :String) :Promise<Bool>
-	{
-		return getInstanceMinutesBillingCycleRemaining(instanceId)
-			.then(function(remainingMinutes :Float) {
-				redis.debugLog({instanceId:instanceId, message: 'remainingMinutes in billing cycle=${remainingMinutes}'});
-				return remainingMinutes <= 15;
-			});
-	}
-
-	override function removeIdleWorkers(type :AsgType, maxWorkersToRemove :Int) :Promise<Array<String>>
-	{
-		redis.infoLog({f:'removeIdleWorkers', maxWorkersToRemove:maxWorkersToRemove});
-		var actualInstancesTerminated :Array<String> = [];
-		return isAsg(type)
-			.pipe(function(exists) {
-				if (!exists) {
-					return Promise.promise(actualInstancesTerminated);
-				}
-				return getInstancesReadyForTermination(type)
-					.pipe(function(workersReadyToDie) {
-						redis.debugLog({f:'removeIdleWorkers', workersReadyToDie:workersReadyToDie});
-						while (workersReadyToDie.length > maxWorkersToRemove) {
-							workersReadyToDie.pop();
-						}
-						return Promise.whenAll(workersReadyToDie.map(function(instanceId) {
-							return getAutoScalingGroupName(type)
-								.pipe(function(asgName) {
-									var promise = new DeferredPromise();
-									var params = {
-										InstanceId: instanceId,
-										ShouldDecrementDesiredCapacity: true
-									};
-									redis.debugLog({f:'removeIdleWorkers', message: 'terminateInstanceInAutoScalingGroup', params:params});
-									actualInstancesTerminated.push(instanceId);
-									autoscaling.terminateInstanceInAutoScalingGroup(params, function(err, data) {
-										if (err != null) {
-											promise.boundPromise.reject(err);
-										} else {
-											redis.debugLog({f:'removeIdleWorkers', message: 'Removed ${instanceId} and decremented asg'});
-											promise.resolve(data);
-										}
-									});
-									return promise.boundPromise;
-								});
-						}));
-					})
-					.then(function(_) {
-						return actualInstancesTerminated;
-					});
-			});
-	}
-
 	override function removeUnhealthyWorkers(type :AsgType) :Promise<Bool>
 	{
-		trace('!!!Disabling removeUnhealthyWorkers for now');
-		return Promise.promise(false);
-
-		trace('removeUnhealthyWorkers');
+		// trace('removeUnhealthyWorkers type=$type');
 		return getAutoScalingGroup(type)
 			.pipe(function(asg) {
 				if (asg == null) {
-					redis.infoLog('removeUnhealthyWorkers asg == null');
+					// redis.infoLog('removeUnhealthyWorkers asg == null');
 					return Promise.promise(false);
 				}
 				//Only concern ourselves with healthy instances.
@@ -389,21 +309,23 @@ class LambdaScalingAws
 					return getInstancesHealthStatus(instanceId)
 						.pipe(function(healthString) {
 							if (healthString != 'OK') {
-								redis.infoLog({instanceId:instanceId, healthString:healthString});
+								// redis.infoLog({instanceId:instanceId, healthString:healthString});
 								return getInstanceMinutesSinceLaunch(instanceId)
 									.pipe(function(minutesSinceLaunch) {
 										if (minutesSinceLaunch > 15) {
-											redis.infoLog({instanceId:instanceId, message:'!!!!!!Terminating ${instanceId} health status != OK', status:healthString, minutesSinceLaunch:minutesSinceLaunch});
+											// trace('TERMINATING instanceId=$instanceId healthString=$healthString minutesSinceLaunch=$minutesSinceLaunch');
+											redis.infoLog({type:type, instanceId:instanceId, message:'!!!!!!Terminating ${instanceId}', status:healthString, minutesSinceLaunch:minutesSinceLaunch});
 											return terminateWorker(instanceId)
 												.then(function(_) {
 													return true;
 												});
 										} else {
-											redis.infoLog({instanceId:instanceId, message:'NOT Terminating ${instanceId}', status:healthString, minutesSinceLaunch:minutesSinceLaunch});
+											// redis.infoLog({instanceId:instanceId, message:'NOT Terminating ${instanceId}', status:healthString, minutesSinceLaunch:minutesSinceLaunch});
 											return Promise.promise(true);
 										}
 									});
 							} else {
+								// trace('instanceId=$instanceId healthString=$healthString');
 								return Promise.promise(true);
 							}
 						});

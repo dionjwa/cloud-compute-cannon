@@ -36,7 +36,7 @@ class TestRedis extends haxe.unit.async.PromiseTest
 				redis.on(RedisClient.EVENT_MESSAGE, function(channel, message) {
 					if (channel == testchannel) {
 						sender.del(testchannel, function(_, _) {});
-						redis.end();
+						redis.end(true);
 						deferred.resolve(true);
 					}
 				});

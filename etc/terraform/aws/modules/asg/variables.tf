@@ -1,9 +1,77 @@
-variable "instance_type" {
+# A security group that will be allowed access to the ELB
+# Not useful if internal=false, since the API will be public.
+variable "api_security_group" { default = "" }
+
+# Bastion security group id
+# If given, allows bastion nodes to hit relevant servers
+variable "bastion_security_group" { default = "" }
+
+variable "env_prefix" {
+  default = "env-"
+}
+
+variable "dcc_docker_image" {
+  default = "dionjwa/docker-cloud-compute:0.4.4-"
+}
+
+variable "instance_type_cpu" {
+  default = "t2.small"
+}
+
+variable "instance_type_gpu" {
+   default = "p2.xlarge"
+}
+
+variable "instance_type_server" {
   default = "t2.micro"
 }
 
-variable "gpu" {
-  default = "0"
+variable "route53_record_zone_id" {
+  default = ""
+}
+
+variable "route53_record_name" {
+  default = ""
+}
+
+variable "workers_cpu_max" {
+  default = 1
+}
+
+variable "workers_cpu_min" {
+  default = 1
+}
+
+# When the queue is empty, wait this many minutes
+# before scaling down
+variable "workers_cpu_empty_queue_scale_down_delay" {
+  default = 20
+}
+
+variable "workers_gpu_max" {
+  default = 0
+}
+
+variable "workers_gpu_min" {
+  default = 0
+}
+
+# When the queue is empty, wait this many minutes
+# before scaling down
+variable "workers_gpu_empty_queue_scale_down_delay" {
+  default = 30
+}
+
+# If this is >= 1 then a separate pool of servers and
+# workers will be created. This allows much cheaper
+# servers to be constantly available without paying the
+# cost of expensive compute instances.
+variable "servers_max" {
+  default = 1
+}
+
+variable "servers_min" {
+  default = 1
 }
 
 variable "s3_access_key" {}
@@ -13,26 +81,16 @@ variable "s3_bucket" {
   default = "docker-cloud-compute-data"
 }
 
-
 variable "key_name" {}
 
-variable "subnets" {
-  type = "list"
-}
+#Comma separated subnet ids
+variable "subnets" {}
 
 variable "region" {
   description = "AWS region"
 }
 
 variable "vpc_id" {}
-
-variable "max_size" {
-  default = 4
-}
-
-variable "min_size" {
-  default = 1
-}
 
 variable "redis_host" {}
 

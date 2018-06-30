@@ -15,6 +15,23 @@ import ccc.compute.shared.provider.CloudProviderType;
 class ServerConfig
 {
 	/**
+	 * Jobs that are not removed can eventually fill up redis.
+	 * By default, jobs older than CLEAN_OLD_JOBS_MAX_AGE are
+	 * removed every day at midnight.
+	 */
+	@NodeProcessVar
+	public static var CLEAN_OLD_JOBS_CRON :String = '0 0 * * 0';
+
+	/**
+	 * Any jobs older than (by default 3 days) are completely
+	 * removed from the system.
+	 * Value is human readable interval string, e.g. 50s or 1d
+	 * (see https://www.npmjs.com/package/parse-duration)
+	 */
+	@NodeProcessVar
+	public static var CLEAN_OLD_JOBS_MAX_AGE :String = '3d';
+
+	/**
 	 * TODO: this might not be necessary.
 	 * When running the API server as a single GPU
 	 * node, set this to 1 or true. This disables
@@ -50,9 +67,32 @@ class ServerConfig
 
 	/**
 	 * Is this a GPU node?
+	 * This must be set to >= 1 for GPU queues to
+	 * be processed, there is not yet a reliable way
+	 * to determine the number or existance of GPUs
+	 * at runtime.
 	 */
 	@NodeProcessVar
 	public static var GPUS :Int = 0;
+
+
+	/**
+	 * Testing GPU logic and data flow but without
+	 * the requirement of actually having a GPU machine.
+	 * Only for local docker-compose testing purposes,
+	 * otherwise leave this.
+	 */
+	@NodeProcessVar
+	public static var DISABLE_NVIDIA_RUNTIME :Bool = false;
+
+	/**
+	 * For testing purposes, we might need to set this to zero
+	 * to prevent regular CPU jobs from running on this worker.
+	 * This is not used normally, the number of CPUs is evaluated
+	 * at runtime by interrogating the docker daemon.
+	 */
+	@NodeProcessVar
+	public static var CPUS :Int;
 
 	@NodeProcessVar
 	public static var STORAGE_PATH_BASE :String = "/jobs";
@@ -73,11 +113,14 @@ class ServerConfig
 	public static var DISABLE_WORKER :Bool = false;
 
 	/**
-	 * The request logs are pretty verbose, and when
-	 * developing it can be useful to disable them.
+	 * Default: DISABLED.
+	 * The request logs are pretty verbose, and
+	 * as DCC is not exposed to the open internet
+	 * they are not particularly useful and quite
+	 * verbose.
 	 */
 	@NodeProcessVar
-	public static var DISABLE_REQUEST_LOGS :Bool = false;
+	public static var ENABLE_REQUEST_LOGS :Bool = false;
 
 	/**
 	 * The host for the fluent log aggregator. If this

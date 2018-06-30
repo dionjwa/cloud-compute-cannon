@@ -82,7 +82,7 @@ class JobWebSocket
 				}
 			})
 			.errorPipe(function(err) {
-				Log.error('Got error from getJobData() err=$err');
+				Log.error('Got error from getJobData() err=${Json.stringify(err)}');
 				return listenWebsocket();
 			});
 	}

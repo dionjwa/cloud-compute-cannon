@@ -16,7 +16,7 @@ enum SizedLayout {
 
 class AppView
 	extends ReactComponentOfPropsAndState<RouteComponentProps, ApplicationState>
-	implements IConnectedComponent
+	implements redux.react.IConnectedComponent
 {
 	static var buttonWidth = 88;
 	static var statusWidth = 45;
@@ -71,9 +71,10 @@ class AppView
 		super(props);
 	}
 
-	function mapState(appState:ApplicationState, props:RouteComponentProps)
+	function mapState(appState :ApplicationState, props :RouteComponentProps)
 	{
-		return appState;
+		var newState :ApplicationState = copy(appState);
+		return newState;
 	}
 
 	function updateDimensions()
@@ -98,9 +99,38 @@ class AppView
 
 	override public function render()
 	{
+		var width = Browser.window.innerWidth;
+		var height = Browser.window.innerHeight;
+
+		var styles = {
+			expanderHeight: {
+				flex: "1 0 auto",
+			},
+			titleText: {
+				fontSize: width > 200 ? "12pt" : "8vw",
+			},
+		};
+
+		var dockerImageName :String = state.app != null && state.app.jobImage != null ? state.app.jobImage : null;
+		var dockerImageNameShort = dockerImageName.replace('docker.io/', '');
+		var dockerImageUrl = 'https://hub.docker.com/r/${dockerImageName.indexOf("/") > -1 ? dockerImageName : "_/" + dockerImageName}';
+		var dockerImageJsx = jsx('<span style={styles.titleText}><a href={dockerImageUrl} target="_blank">{dockerImageNameShort}</a></span>');
+
+		if (dockerImageName == null || !Metaframe.isIframe()) {
+			return jsx('
+				<div id="app-container">
+					${dockerImageJsx}
+					<span style={styles.titleText}>
+						Show help here
+					</span>
+				</div>');
+		}
+
+		dockerImageName = dockerImageName.replace('docker.io/', '');
+
 		var jobState :JobState = state.app.jobState;
 		var paused = state.app.paused;
-		var isProgress = switch(jobState) {
+		var isProgress = jobState == null ? false : switch(jobState) {
 			case Waiting: false;
 			case FinishedSuccess: false;
 			case FinishedError: false;
@@ -109,17 +139,9 @@ class AppView
 			case Running: true;
 		};
 
-		var dockerImageName :String = state.app != null && state.app.jobImage != null ? state.app.jobImage : null;
-		if (dockerImageName != null) {
-			dockerImageName = dockerImageName.replace('docker.io/', '');
-		}
-
 		var exitCode = state.app != null && state.app.jobResults != null ? '${state.app.jobResults.exitCode}' : '';
 		var stdout = state.app != null && state.app.jobResults != null ? state.app.jobResults.stdout : null;
 		var stderr = state.app != null && state.app.jobResults != null ? state.app.jobResults.stderr : null;
-
-		var width = state.width;
-		var height = state.height;
 
 		var layoutType = getLayoutType(width, height);
 
@@ -136,9 +158,9 @@ class AppView
 			case Tiny, Small, Medium: null;
 			case Big:
 				jsx('
-					<Paper id="paper-main" style={{flex:"0 1 auto"}}>
+					<Box id="paper-main" style={{flex:"0 1 auto"}}>
 						<ExitCode running=$isProgress exitCode=$exitCode />
-					</Paper>
+					</Box>
 				');
 		}
 
@@ -156,20 +178,9 @@ class AppView
 				');
 		}
 
-		var styles = {
-			expanderHeight: {
-				flex: "1 0 auto",
-			},
-			titleText: {
-				fontSize: width > 200 ? "12pt" : "8vw",
-			},
-		};
-
 		return jsx('
 			<div id="app-container">
-				<span style={styles.titleText}>
-					$dockerImageName
-				</span>
+				${dockerImageJsx}
 				${status}
 				${jobDetails}
 				<div id="expanderHeight" style={styles.expanderHeight} />

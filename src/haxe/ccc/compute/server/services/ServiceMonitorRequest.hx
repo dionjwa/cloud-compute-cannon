@@ -213,6 +213,7 @@ class ServiceMonitorRequest
 			if (jobStats != null) {
 				//TODO: fix the error:"null" bug
 				if (jobStats.status == JobStatus.Finished
+					&& jobStats.attempts[jobStats.attempts.length - 1] != null
 					&& jobStats.attempts[jobStats.attempts.length - 1].exitCode == 0
 					&& (jobStats.attempts[jobStats.attempts.length - 1].error == null || jobStats.attempts[jobStats.attempts.length - 1].error == "null")) {
 

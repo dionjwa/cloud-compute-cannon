@@ -95,7 +95,7 @@ class Logger
 		if (ServerConfig.FLUENT_HOST != null && ServerConfig.FLUENT_HOST != "") {
 #if (!clientjs)
 			js.Node.console.log('Fluent emitter->${ServerConfig.FLUENT_HOST}');
-			var fluentLogger = {write:ccc.compute.server.logs.FluentTools.createEmitter('time', false)};
+			var fluentLogger = {write:ccc.compute.server.logs.FluentTools.createEmitter('timestamp', false)};
 			streams.push({
 				level: level,
 				type: 'raw',// use 'raw' to get raw log record objects

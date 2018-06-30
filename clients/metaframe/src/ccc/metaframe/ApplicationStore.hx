@@ -11,6 +11,12 @@ import redux.StoreBuilder.*;
 
 class ApplicationStore
 {
+	static var PORT_API :Int
+#if debug
+		= Std.parseInt(CompileTime.readFile(".env").split('\n').find(function(s) return s.startsWith('PORT_API')).split('=')[1])
+#end
+	;
+
 	static public function create():Store<ApplicationState>
 	{
 		// store model, implementing reducer and middleware logic
@@ -20,21 +26,11 @@ class ApplicationStore
 		//it uses its own websocket, so we need our api websocket on
 		//a different port
 		var port = Browser.location.port != null ? ":" + Browser.location.port : "";
-		// if (port == ':8090') {
-		// 	port = ':8000';
-		// }
+		if (PORT_API != null) {
+			port = ':${PORT_API}';
+		}
 
 		var urlParams = new js.html.URLSearchParams(Browser.window.location.search);
-
-		var queryParamWsPort :String = urlParams.has('WSPORT') ? urlParams.get('WSPORT') : urlParams.get('wsport');
-		if (queryParamWsPort != null) {
-			try {
-				port = ':${queryParamWsPort}';
-				trace('CUSTOM WS PORT=${queryParamWsPort}');
-			} catch(e :Dynamic) {
-				//Ignored
-			}
-		}
 		var protocol = Browser.location.protocol == "https:" ? "wss:" : "ws:";
 		var wsUrl = '${protocol}//${Browser.location.hostname}${port}/metaframe';
 
@@ -66,7 +62,16 @@ class ApplicationStore
 		// user 'StoreBuilder.createStore' helper to automatically wire
 		// the Redux devtools browser extension:
 		// https://github.com/zalmoxisus/redux-devtools-extension
-		return createStore(rootReducer, null, middleware);
+
+		var initialState :ApplicationState = {
+			app: {
+				jobImage: new URL(Browser.window.location.href).searchParams.get('image'),
+				metaframeReady: false,
+			},
+			ws: null,
+		};
+
+		return createStore(rootReducer, initialState, middleware);
 	}
 
 	static public function startup(store:Store<ApplicationState>)

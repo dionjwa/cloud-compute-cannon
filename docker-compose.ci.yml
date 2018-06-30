@@ -1,0 +1,102 @@
+version: '2.3'
+
+networks:
+  dcc:
+    driver: bridge
+
+volumes:
+  local-storage:
+    driver: local
+
+services:
+
+  server:
+    image: "docker-cloud-compute:${VERSION}"
+    ports:
+      - "9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - local-storage:/jobs
+    command: ["node", "server/docker-cloud-compute-server.js"]
+    environment:
+      - PORT=9000
+      - REDIS_HOST=redis
+      - LOG_LEVEL=info
+      - DISABLE_REQUEST_LOGS=true
+      - STORAGE_PATH_BASE=/jobs
+      - DISABLE_WORKER=true
+    depends_on:
+      - redis
+    networks:
+      - dcc
+
+  worker1cpu:
+    image: "docker-cloud-compute:${VERSION}"
+    ports:
+      - "9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - local-storage:/jobs
+    command: ["node", "server/docker-cloud-compute-server.js"]
+    environment:
+      - PORT=9000
+      - REDIS_HOST=redis
+      - LOG_LEVEL=info
+      - DISABLE_REQUEST_LOGS=true
+      - STORAGE_PATH_BASE=/jobs
+      - DISABLE_WORKER=false
+      - GPUS=0
+      - CPUS=1
+    depends_on:
+      - redis
+    networks:
+      - dcc
+
+  worker1gpu:
+    image: "docker-cloud-compute:${VERSION}"
+    ports:
+      - "9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - local-storage:/jobs
+    command: ["node", "server/docker-cloud-compute-server.js"]
+    environment:
+      - PORT=9000
+      - REDIS_HOST=redis
+      - LOG_LEVEL=info
+      - DISABLE_REQUEST_LOGS=true
+      - STORAGE_PATH_BASE=/jobs
+      - DISABLE_WORKER=false
+      - CPUS=0
+      - GPUS=1
+    depends_on:
+      - redis
+    networks:
+      - dcc
+
+  # Run the functional and scaling tests in a separate container
+  dcc.tests:
+    image: "docker-cloud-compute:${VERSION}"
+    command: ["node",  "test/docker-cloud-compute-tester.js"]
+    environment:
+      - DCC=server:9000
+      - DCC_WORKER1CPU=worker1cpu:9000
+      - DCC_WORKER1GPU=worker1gpu:9000
+      - LOG_LEVEL=debug
+      - REDIS_HOST=redis
+      - TEST=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - local-storage:/jobs
+    depends_on:
+      - server
+      - redis
+    networks:
+      - dcc
+
+  redis:
+    image: redis:3.2.0-alpine
+    networks:
+      - dcc
+    logging:
+      driver: none

@@ -10,6 +10,30 @@ typedef ExpectedResult = {
 }
 class ServerTestTools
 {
+	/**
+	 * This is only for testing, the Queues object can enqueue
+	 * tasks but it will not process them (otherwise interferes
+	 * with actual server logic).
+	 */
+	public static function getQueues(injector :Injector) :Queues
+	{
+		if (injector.hasMapping(Queues)) {
+			return injector.getValue(Queues);
+		}
+		var redisHost :String = ServerTesterConfig.REDIS_HOST;
+		var redisPort :Int = ServerTesterConfig.REDIS_PORT;
+		//Make this object without the processing part
+		//If this is needed again, create a static function
+		var queues :Queues = new Queues();
+		//Manually "inject" all the depdendencies for now.
+		queues.cpu = new js.npm.bull.Bull.Queue(BullQueueNames.JobQueue, {redis:{port:redisPort, host:redisHost}});
+		queues.gpu = new js.npm.bull.Bull.Queue(BullQueueNames.JobQueueGpu, {redis:{port:redisPort, host:redisHost}});
+		queues.message = new js.npm.bull.Bull.Queue(BullQueueNames.SingleMessageQueue, {redis:{port:redisPort, host:redisHost}});
+		queues.injector = injector;
+		injector.map(Queues).toValue(queues);
+		return queues;
+
+	}
 	public static function getServerAddress() :Host
 	{
 		var env = Sys.environment();
@@ -38,7 +62,7 @@ class ServerTestTools
 		return JobWebSocket.getJobResult(getServerAddress(), jobId, getJobData);
 	}
 
-	public static function createTestJobAndExpectedResults(testName :String, duration :Int, ?useCustomPaths :Bool = true) :{request:BasicBatchProcessRequest, expects:ExpectedResult}
+	public static function createTestJobAndExpectedResults(testName :String, duration :Int, ?useCustomPaths :Bool = true, ?gpu :Bool = false) :{request:BasicBatchProcessRequest, expects:ExpectedResult}
 	{
 		var TEST_BASE = 'tests';
 
@@ -94,7 +118,13 @@ cat /$DIRECTORY_INPUTS/$inputName1 > /$DIRECTORY_OUTPUTS/$outputName2
 		var inputsArray = [inputInline, inputScript];
 
 		var request: BasicBatchProcessRequest = {
-			parameters: {maxDuration:duration*2},
+			id: 'createTestJobAndExpectedResults${random}',
+			parameters: {
+				maxDuration: duration*2 + 5,
+				gpu: gpu ? 1 : 0,
+				cpus: gpu ? 0 : 1,
+				DISABLE_NVIDIA_DOCKER_RUNTIME: true,
+			},//Add some in case duration==0
 			inputs: inputsArray,
 			image: DOCKER_IMAGE_DEFAULT,
 			cmd: ["/bin/sh", '/$DIRECTORY_INPUTS/$scriptName'],
@@ -103,7 +133,7 @@ cat /$DIRECTORY_INPUTS/$inputName1 > /$DIRECTORY_OUTPUTS/$outputName2
 			outputsPath: customOutputsPath,
 			meta: {
 				name: testName,
-				maxDuration: duration*2,
+				maxDuration: duration*2 + 5,
 				sleep: 'sleep ${duration}s'
 			},
 			wait: true

@@ -216,7 +216,6 @@ class BatchComputeDocker
 					return Promise.promise(true);
 				}
 			})
-
 			.pipe(function(_) {
 				if (jobWorkingStatus == JobWorkingStatus.CopyingOutputsAndLogs) {
 					return Promise.whenAll([
@@ -583,8 +582,7 @@ class BatchComputeDocker
 						opts.HostConfig.Binds.push(mount.Source + ':' + mount.Destination + ':rw');
 					}
 
-					if (job.parameters != null && job.parameters.gpu) {
-						traceGreen('ADDING GPU Runtime=nvidia');
+					if (job.parameters.gpu > 0 && !job.parameters.DISABLE_NVIDIA_DOCKER_RUNTIME && !ServerConfig.DISABLE_NVIDIA_RUNTIME) {
 						Reflect.setField(opts.HostConfig, "Runtime", "nvidia");
 					}
 

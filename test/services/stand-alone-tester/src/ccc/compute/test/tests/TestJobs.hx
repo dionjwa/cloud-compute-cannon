@@ -20,79 +20,7 @@ class TestJobs extends ServerAPITestBase
 {
 	static var TEST_BASE = 'tests';
 
-	// @timeout(120000)
-	// public function testContainerKilledExternally() :Promise<Bool>
-	// {
-	// 	traceYellow('testContainerKilledExternally not yet implemented');
-	// 	return Promise.promise(true);
-	// }
-
-	// @timeout(120000)
-	// public function testServerProcessKilledJobsRescheduled() :Promise<Bool>
-	// {
-	// 	traceYellow('testServerProcessKilledJobsRescheduled not yet implemented');
-	// 	return Promise.promise(true);
-	// }
-
-	@timeout(120000)
-	public function testJobDataAvailableAfterRemoval() :Promise<Bool>
-	{
-		var routes = ProxyTools.getProxy(_serverHostRPCAPI);
-		var testBlob = ServerTestTools.createTestJobAndExpectedResults('testJobDataAvailableAfterRemoval', 0, false);
-		var expectedBlob = testBlob.expects;
-		var jobRequest = testBlob.request;
-		jobRequest.wait = true;
-		jobRequest.priority = true;
-
-		var jobId :JobId = null;
-
-		return ClientJSTools.postJob(_serverHost, jobRequest)
-			.pipe(function(jobResult :JobResultAbstract) {
-				if (jobResult == null) {
-					throw 'jobResult should not be null. Check the above section';
-				}
-				jobId = jobResult.jobId;
-				return Promise.promise(true);
-			})
-			.thenWait(300)
-			.pipe(function(_) {
-				return routes.doJobCommand_v2(JobCLICommand.Remove, jobId);
-			})
-			.pipe(function(_) {
-				return routes.doJobCommand_v2(JobCLICommand.Result, jobId)
-					.then(function(jobResult) {
-						assertNotNull(jobResult);
-						return true;
-					});
-			})
-			.pipe(function(_) {
-				return routes.doJobCommand_v2(JobCLICommand.ExitCode, jobId)
-					.then(function(exitCode) {
-						assertNotNull(exitCode);
-						return true;
-					});
-			})
-			.pipe(function(_) {
-				return routes.doJobCommand_v2(JobCLICommand.Definition, jobId)
-					.then(function(definition) {
-						assertNotNull(definition);
-						return true;
-					});
-			})
-			.pipe(function(_) {
-				return routes.doJobCommand_v2(JobCLICommand.JobStats, jobId)
-					.then(function(stats) {
-						assertNotNull(stats);
-						return true;
-					});
-			})
-			.pipe(function(_) {
-				return routes.doJobCommand_v2(JobCLICommand.RemoveComplete, jobId)
-					.then(function(jobResult) {
-						return true;
-					});
-			});
-	}
+	@inject public var redis :RedisClient;
 
 	@timeout(120000)
 	public function testExitCodeZero() :Promise<Bool>
@@ -576,6 +504,63 @@ cp /$DIRECTORY_INPUTS/$inputName2 /$DIRECTORY_OUTPUTS/$outputName2
 	}
 
 	@timeout(120000)
+	public function testMultipartRPCSubmissionJsonRpcNotFirst404() :Promise<Bool>
+	{
+		var routes = ProxyTools.getProxy(_serverHostRPCAPI);
+		var url = 'http://${_serverHost}${SERVER_RPC_URL}';
+
+		var random = ShortId.generate();
+
+		// Create bytes for inputs. We'll test the output bytes
+		// against these
+		var bytes1 = new Buffer([Std.int(Math.random() * 1000), Std.int(Math.random() * 1000), Std.int(Math.random() * 1000)]).toString('utf8');
+		var inputName1 = 'in${Std.int(Math.random() * 100000000)}';
+		var outputName1 = 'out${Std.int(Math.random() * 100000000)}';
+
+		var bytes2 = new Buffer('somestring${Std.int(Math.random() * 100000000)}', 'utf8').toString('utf8');
+		var inputName2 = 'in${Std.int(Math.random() * 100000000)}';
+		var outputName2 = 'out${Std.int(Math.random() * 100000000)}';
+
+		var jobSubmissionOptions :BasicBatchProcessRequest = {
+			id: 'testMultipartRPCSubmissionJsonRpcNotFirst404.$random',
+			image: DOCKER_IMAGE_DEFAULT,
+			cmd: ['/bin/sh', 'echo foo'],
+			wait: true
+		};
+
+		var formData :DynamicAccess<Dynamic> = {};
+		//Notice I'm putting the JSON bit inbetween the other inputs
+		//BUT this is a map, not an array. Strictly speaking, this should
+		//sporadically fail, however, most implementations of Javascript
+		//keep insertion order, so we'll exploit that here because there's
+		//no explicit array-like object for the multipart form data elements
+		//https://stackoverflow.com/questions/9179680/is-it-acceptable-style-for-node-js-libraries-to-rely-on-object-key-order
+		formData[inputName1] = bytes1;
+		formData[JsonRpcConstants.MULTIPART_JSONRPC_KEY] = Json.stringify(
+			{
+				method: RPC_METHOD_JOB_SUBMIT,
+				params: jobSubmissionOptions,
+				jsonrpc: JsonRpcConstants.JSONRPC_VERSION_2
+
+			});
+		formData[inputName2] = bytes2;
+
+		var promise = new DeferredPromise();
+		js.npm.request.Request.post({url:url, formData: formData},
+			function(err, httpResponse, body) {
+				if (err != null) {
+					traceYellow(err);
+					promise.boundPromise.reject(err);
+					return;
+				}
+				assertEquals(httpResponse.statusCode, 404);
+				promise.resolve(true);
+			});
+
+		return promise.boundPromise;
+	}
+
+	@timeout(120000)
 	public function testMultipartRPCSubmissionAndWait() :Promise<Bool>
 	{
 		var routes = ProxyTools.getProxy(_serverHostRPCAPI);
@@ -798,6 +783,172 @@ exit 0
 			});
 
 		return promise.boundPromise;
+	}
+
+	/**
+	 * See docs for testRegularRPCSubmissionCustomId below.
+	 */
+	@timeout(120000)
+	public function testMultipartRPCSubmissionCustomId() :Promise<Bool>
+	{
+		var id = 'testMultipartRPCSubmissionCustomId${ShortId.generate()}';
+
+		var jobSubmissionOptions :BasicBatchProcessRequest = {
+			id: id, //This will be the same below
+			image: DOCKER_IMAGE_DEFAULT,
+			cmd: ['echo', 'testMultipartRPCSubmissionCustomId'],
+			inputs: [],
+			wait: true
+		};
+
+		var formData :DynamicAccess<Dynamic> = {};
+		formData[JsonRpcConstants.MULTIPART_JSONRPC_KEY] = Json.stringify(
+			{
+				method: RPC_METHOD_JOB_SUBMIT,
+				params: jobSubmissionOptions,
+				jsonrpc: JsonRpcConstants.JSONRPC_VERSION_2
+
+			});
+		formData["arbitrary"] = "unfortunately i am also arbitrary, and not even a key";
+
+		var promise = new DeferredPromise();
+		var url = 'http://${_serverHost}${SERVER_RPC_URL}';
+		js.npm.request.Request.post({url:url, formData: formData},
+			function(err, httpResponse, body) {
+				if (err != null) {
+					promise.boundPromise.reject(err);
+					return;
+				}
+				var jsonRpcResponse :ResponseDef = Json.parse(body);
+				var jobResult :JobResult = jsonRpcResponse.result;
+				assertEquals(jobResult.jobId, id);
+				promise.resolve(true);
+			});
+
+		return promise.boundPromise;
+	}
+
+	/**
+	 * This is needed in addition to testMultipartRPCSubmissionCustomId
+	 * because they are two different code paths where this logic is
+	 * concerned. It would be nice to not have the duplication, but multipart
+	 * requests have many more edge cases, so you need time to think
+	 * through them all.
+	 */
+	@timeout(120000)
+	public function testRegularRPCSubmissionCustomId() :Promise<Bool>
+	{
+		var id = 'testRegularRPCSubmissionCustomId${ShortId.generate()}';
+
+		var jobRequest :BasicBatchProcessRequest = {
+			id: id, //This will be the same below
+			image: DOCKER_IMAGE_DEFAULT,
+			cmd: ['echo', 'foo'],
+			inputs: [],
+			wait: true
+		};
+
+		var routes = ProxyTools.getProxy(_serverHostRPCAPI);
+
+		return routes.submitJobJson(jobRequest)
+			.then(function(jobResult) {
+				assertEquals(jobResult.jobId, id);
+			})
+			.thenTrue();
+	}
+
+	/**
+	 * Checks that the global record of the last job time
+	 * matches the known last job time. This value is used
+	 * by the scaling lambdas, so that can only scale down
+	 * workers if there have been no jobs in the last given
+	 * time interval.
+	 */
+	@timeout(60000)
+	public function testLastJobTimes() :Promise<Bool>
+	{
+		function getLastJobTime(bullQueue :BullQueueNames) :Promise<Float> {
+			return RedisPromises.hget(redis, REDIS_HASH_TIME_LAST_JOB_FINISHED, bullQueue)
+				.then(function(time) {
+					if (time != null && time != "") {
+						return Std.parseFloat(time);
+					} else {
+						return -1;
+					}
+				});
+		}
+		var promises = [];
+		[true, false].iter(function(isGpu) {
+			var jobStuff = ServerTestTools.createTestJobAndExpectedResults('testLastJobTimes', 1, false, isGpu);
+			jobStuff.request.wait = true;
+
+			var p = ClientJSTools.postJob(_serverHost, jobStuff.request)
+				.pipe(function(jobResult) {
+					assertNotNull(jobResult);
+					assertNotNull(jobResult.jobId);
+					return getLastJobTime(isGpu ? BullQueueNames.JobQueueGpu : BullQueueNames.JobQueue)
+						.pipe(function(lastJobTime) {
+							return JobStatsTools.getJobStatsData(jobResult.jobId)
+								.then(function(jobStats) {
+									assertEquals(jobStats.finished, lastJobTime);
+									return true;
+								});
+						});
+				});
+			promises.push(p);
+		});
+		return Promise.whenAll(promises).thenTrue();
+	}
+
+	@timeout(5000)
+	public function testCorrect404HttpStatusCodeForMissingJobInJobCommands() :Promise<Bool>
+	{
+		var apisFor404 = ['status', 'result', 'stats', 'definition', 'time'];
+
+		var promises = apisFor404.map(function(api) {
+			var url = '${_serverHostRPCAPI}/job/$api/fakejob';
+			var promise = new DeferredPromise();
+			js.npm.request.Request.get(url,
+				function(err, httpResponse, body) {
+					traceYellow('api=$api = ${httpResponse.statusCode} body=$body');
+					assertEquals(httpResponse.statusCode, 404);
+					if (err != null) {
+						promise.boundPromise.reject(err);
+						return;
+					}
+					promise.resolve(httpResponse.statusCode == 404);
+				});
+
+			return promise.boundPromise;
+		});
+
+		return Promise.whenAll(promises)
+			.thenTrue();
+	}
+
+	@timeout(5000)
+	public function testCorrect200HttpStatusCodeForMissingJobInSomeJobCommands() :Promise<Bool>
+	{
+		var apisFor404 = ['remove', 'kill'];
+
+		var promises = apisFor404.map(function(api) {
+			var url = '${_serverHostRPCAPI}/job/$api/fakejob';
+			var promise = new DeferredPromise();
+			js.npm.request.Request.get(url,
+				function(err, httpResponse, body) {
+					assertEquals(httpResponse.statusCode, 200);
+					if (err != null) {
+						promise.boundPromise.reject(err);
+						return;
+					}
+					promise.resolve(httpResponse.statusCode == 200);
+				});
+
+			return promise.boundPromise;
+		});
+
+		return Promise.whenAll(promises)
+			.thenTrue();
 	}
 
 	public function new() { super(); }

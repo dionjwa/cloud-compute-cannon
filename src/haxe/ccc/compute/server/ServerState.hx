@@ -46,7 +46,6 @@ abstract ServerState(Injector) from Injector to Injector
 		Log.debug({status:'${status} ${Type.getEnumConstructs(ServerStartupState).indexOf(Type.enumConstructor(status)) + 1} / ${Type.getEnumConstructs(ServerStartupState).length}'});
 		if (Type.getEnumConstructs(ServerStartupState).indexOf(Type.enumConstructor(status)) == Type.getEnumConstructs(ServerStartupState).length - 1) {
 			Log.info(LogFieldUtil.addServerEvent({}, ServerEventType.READY));
-			// Log.info(({}).add(LogEventType.ServerReady));
 		}
 	}
 

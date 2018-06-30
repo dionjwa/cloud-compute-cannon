@@ -53,7 +53,7 @@ class JobStateTools
 	end
 
 	local jobStatsJsonString = redis.call("HGET", "${REDIS_KEY_HASH_JOB_STATS}", jobId)
-	if jobStatsJsonString == nil then
+	if not jobStatsJsonString then
 		return {err="${RedisError.NoJobFound}", script="SET_JOB_STATE_SCRIPT", jobId=jobId}
 	end
 	local jobstats = cmsgpack.unpack(jobStatsJsonString)
@@ -63,7 +63,11 @@ class JobStateTools
 	end
 
 	if error ~= nil then
-		redis.call("HSET", "${REDIS_KEY_HASH_JOB_ERROR}", jobId, error)
+		if type(error) == "string" then
+			redis.call("HSET", "${REDIS_KEY_HASH_JOB_ERROR}", jobId, error)
+		else
+			redis.call("HSET", "${REDIS_KEY_HASH_JOB_ERROR}", jobId, cjson.encode(error))
+		end
 	end
 
 	${JobStatsTools.SNIPPET_SAVE_STATUS_TO_STATS}
@@ -101,7 +105,7 @@ class JobStateTools
 			local jobstats = cmsgpack.unpack(jobstatsString)
 			return jobstats.status
 		else
-			return {err="${RedisError.NoJobFound}", jobId=jobId}
+			return nil
 		end
 	';
 	@redis({lua:'${SCRIPT_GET_STATUS}'})
@@ -189,16 +193,11 @@ class JobStateTools
 	}
 
 	static var SNIPPET_JOB_CANCEL = '
-	redis.log(redis.LOG_NOTICE, "SNIPPET_JOB_CANCEL")
-	redis.log(redis.LOG_NOTICE, "redis.call(HEXISTS, ${REDIS_KEY_HASH_JOB_STATS}, " .. jobId .. ")")
-	redis.log(redis.LOG_NOTICE, redis.call("HEXISTS", "${REDIS_KEY_HASH_JOB_STATS}", jobId))
-	redis.log(redis.LOG_NOTICE, type(redis.call("HEXISTS", "${REDIS_KEY_HASH_JOB_STATS}", jobId)))
 	if redis.call("HEXISTS", "${REDIS_KEY_HASH_JOB_STATS}", jobId) == 0 then
 		return {err="${RedisError.NoJobFound}", jobId=jobId, script="SNIPPET_JOB_CANCEL"}
 	end
 	${JobStatsTools.SNIPPET_LOAD_CURRENT_JOB_STATS}
 	local state = jobstats.status
-	redis.log(redis.LOG_NOTICE, "state=" .. tostring(state))
 	if state then
 		if state == "${JobStatus.Finished}" then
 			return

@@ -25,7 +25,7 @@ class ScalingTests
 				return killAllWorkers();
 			})
 			.pipe(lambda.traceJson())
-			.thenWait(5000)//Travis times out all the time
+			.thenWait(5000)//Cloud build systems time out all the time
 			.pipe(lambda.traceJson())
 			//Start with a single worker
 			.pipe(function(_) {
@@ -127,7 +127,7 @@ class ScalingTests
 	@timeout(10000)
 	public function testCreateWorker() :Promise<Bool>
 	{
-		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var rpcUrl = '${ScalingServerConfig.DCC}/${Type.enumConstructor(CCCVersion.v1)}';
 		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		return Promise.promise(true)
 			.pipe(function(_) {
@@ -270,10 +270,9 @@ class ScalingTests
 	}
 
 	@timeout(120000)
-	@only
 	public function testScaleUpLambda() :Promise<Bool>
 	{
-		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var rpcUrl = '${ScalingServerConfig.DCC}/${Type.enumConstructor(CCCVersion.v1)}';
 		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		var maxWorkers = 4;
 		return Promise.promise(true)
@@ -512,7 +511,7 @@ class ScalingTests
 	@timeout(120000)
 	public function testServersOnlyWorkersOnly() :Promise<Bool>
 	{
-		var rpcUrl = '${ScalingServerConfig.CCC}/${Type.enumConstructor(CCCVersion.v1)}';
+		var rpcUrl = '${ScalingServerConfig.DCC}/${Type.enumConstructor(CCCVersion.v1)}';
 		var proxy = ccc.compute.client.util.ProxyTools.getProxy(rpcUrl);
 		return Promise.promise(true)
 			.pipe(function(_) {
@@ -564,7 +563,7 @@ class ScalingTests
 		function createAndSubmitJob() {
 			var jobRequest = ServerTestTools.createTestJobAndExpectedResults(name, duration);
 			jobRequest.request.wait = false;
-			var f = function() return ccc.compute.client.js.ClientJSTools.postJob(ScalingServerConfig.CCC, jobRequest.request, {});
+			var f = function() return ccc.compute.client.js.ClientJSTools.postJob(ScalingServerConfig.DCC, jobRequest.request, {});
 			return RetryPromise.retryRegular(f, 10, 1000)
 				.errorPipe(function(err) {
 					traceRed(err);

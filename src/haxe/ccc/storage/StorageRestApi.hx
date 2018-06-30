@@ -43,7 +43,7 @@ class StorageRestApi
 			.then(function(stream) {
 				stream.once('error', function(err) {
 					stream.unpipe(res);
-					Log.error({error:err, file:file, message:'Error reading file'});
+					Log.warn({error:err, file:file, message:'Error reading file'});
 					if (!res.headersSent) {
 						res.status(500);
 					}
@@ -58,7 +58,7 @@ class StorageRestApi
 				stream.pipe(res);
 			})
 			.catchError(function(err) {
-				Log.error({error:err, file:file, message:'Error reading file'});
+				Log.warn({error:err, file:file, message:'Error reading file'});
 				if (!res.headersSent) {
 					res.setHeader('Content-Type', 'application/json');
 					res.status(500);

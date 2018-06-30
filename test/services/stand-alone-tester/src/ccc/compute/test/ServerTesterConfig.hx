@@ -7,6 +7,12 @@ class ServerTesterConfig
 	public static var DCC :String = 'dcc.local';
 
 	@NodeProcessVar
+	public static var DCC_WORKER1CPU :String;
+
+	@NodeProcessVar
+	public static var DCC_WORKER1GPU :String;
+
+	@NodeProcessVar
 	public static var DCC_SCALING :String = 'dcc-scaling-server:4015';
 
 	@NodeProcessVar

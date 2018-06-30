@@ -10,7 +10,7 @@ typedef PlayPauseButtonState = {}
 
 class PlayPauseButton
 	extends ReactComponentOfPropsAndState<PlayPauseButtonProps,PlayPauseButtonState>
-	implements IConnectedComponent
+	implements redux.react.IConnectedComponent
 {
 	public function new(props:PlayPauseButtonProps)
 	{
@@ -20,14 +20,17 @@ class PlayPauseButton
 
 	override public function render()
 	{
-		var raised = true;
-		// raised={raised}
+		var icon = this.props.paused ?
+			jsx('<span className="icon"><i className="fas fa-pause-circle"></i></span>')
+			:
+			jsx('<span className="icon"><i className="fas fa-play-circle"></i></span>');
+
 		return jsx('
 			<Button
 				ref="iconButton"
 				onClick={onClick}
 			>
-				<Icon>${this.props.paused ? "pause" : "play_arrow"}</Icon>
+				$icon
 			</Button>
 		');
 	}
@@ -37,4 +40,3 @@ class PlayPauseButton
 		this.dispatch(MetaframeAction.SetPaused(!this.props.paused));
 	}
 }
-

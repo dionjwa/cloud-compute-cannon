@@ -16,7 +16,7 @@ data "aws_availability_zones" "available" {}
 #All the stuff, high level
 # redis module
 # lambda autoscaling module
-# ccc asg module
+# dcc asg module
 # s3 bucket
 
 #VPC
@@ -24,7 +24,7 @@ module "vpc" {
   enabled = "${var.single_node ? 0 : 1}"
   source = "github.com/terraform-aws-modules/terraform-aws-vpc?ref=master"
 
-  name = "ccc-vpc"
+  name = "dcc-vpc"
   cidr = "10.0.0.0/16"
 
   #TODO: parameterize this for the multi-zone params
@@ -41,7 +41,7 @@ module "vpc" {
   tags = {
     Terraform = "true"
     Environment = "dev"
-    System = "ccc"
+    System = "dcc"
   }
 }
 

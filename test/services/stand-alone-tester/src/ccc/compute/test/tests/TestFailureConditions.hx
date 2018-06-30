@@ -56,6 +56,7 @@ class TestFailureConditions extends ServerAPITestBase
 	public function testJobCancelled() :Promise<Bool>
 	{
 		var routes = ProxyTools.getProxy(_serverHostRPCAPI);
+		var queues :Queues = ServerTestTools.getQueues(injector);
 		var jobDurationSeconds = 60;
 		var testBlob = createTestJobAndExpectedResults('testCancelJob', jobDurationSeconds);
 		var expectedBlob = testBlob.expects;
@@ -78,10 +79,14 @@ class TestFailureConditions extends ServerAPITestBase
 			.pipe(function(_) {
 				return routes.doJobCommand_v2(JobCLICommand.Kill, jobId);
 			})
-			.thenWait(10)
 			.pipe(function(_) {
-				var f = function() { return routes.doJobCommand_v2(JobCLICommand.Result, jobId);};
-				return RetryPromise.retryRegular(f, 16, 500);
+				return BullQueueTestTools.waitUntilQueueEmpty(queues.message);
+			})
+			.pipe(function(_) {
+				return routes.doJobCommand_v2(JobCLICommand.Result, jobId)
+					.errorPipe(function(err) {
+						return Promise.promise(null);
+					});
 			})
 			.then(function(jobResult) {
 				assertIsNull(jobResult);
@@ -101,20 +106,20 @@ class TestFailureConditions extends ServerAPITestBase
 			});
 	}
 
-	@timeout(60000)
-	public function testJobFailedButStillRunsRestartsOnSameWorkerPrevJobCleanedUp() :Promise<Bool>
+	@timeout(120000)
+	public function testJobFailedButStillRunsRestartsPrevJobCleanedUp() :Promise<Bool>
 	{
 		var routes = ProxyTools.getProxy(_serverHostRPCAPI);
 
 		var docker = injector.getValue(Docker);
 
 		if (docker == null) {
-			traceYellow('testJobFailedButStillRunsRestartsOnSameWorkerPrevJobCleanedUp missing docker');
+			traceYellow('testJobFailedButStillRunsRestartsPrevJobCleanedUp missing docker');
 			return Promise.promise(true);
 		}
 
 		var jobDurationSeconds = 10;
-		var testBlob = createTestJobAndExpectedResults('testJobFailedButStillRunsRestartsOnSameWorkerPrevJobCleanedUp', jobDurationSeconds);
+		var testBlob = createTestJobAndExpectedResults('testJobFailedButStillRunsRestartsPrevJobCleanedUp', jobDurationSeconds);
 		var expectedBlob = testBlob.expects;
 		var jobRequest = testBlob.request;
 		jobRequest.wait = false;
@@ -161,9 +166,8 @@ class TestFailureConditions extends ServerAPITestBase
 						assertEquals(jobStats.statusFinished, JobFinishedStatus.Success);
 						assertTrue(jobStats.finished > 0);
 						assertTrue(jobStats.attempts.length == 2);
-						assertTrue(jobStats.attempts[1].worker != null);
+						assertTrue(jobStats.attempts[1].workerId != null);
 						assertTrue(jobStats.attempts[1].copiedInputs > 0);
-						// assertTrue(jobStats.attempts[1].copiedInputsAndImage > 0);
 						assertTrue(jobStats.attempts[1].containerExited > 0);
 						assertTrue(jobStats.attempts[1].enqueued > 0);
 						assertTrue(jobStats.attempts[1].dequeued > 0);

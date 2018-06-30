@@ -1,11 +1,10 @@
 
-resource "aws_instance" "terraform_ccc_elasticsearch_stack_mini" {
+resource "aws_instance" "dcc_elasticsearch_stack_mini" {
   ami = "${lookup(var.amis, var.region)}"
   instance_type = "${var.instance_type}"
   subnet_id = "${var.subnet_id}"
-  vpc_security_group_ids = ["${aws_security_group.terraform_ccc_fluent.id}"]
+  vpc_security_group_ids = ["${aws_security_group.dcc_fluent.id}"]
   monitoring  = true
-  associate_public_ip_address = true
 
   # Examine /var/log/cloud-init-output.log for errors
   user_data = "${file("${path.module}/init-fluent-instance.sh")}"
@@ -13,7 +12,7 @@ resource "aws_instance" "terraform_ccc_elasticsearch_stack_mini" {
   key_name = "${var.key_name}"
 
   tags {
-    Name = "terraform-ccc-ELK-stack"
+    Name = "${var.name-prefix}dcc-ELK-stack"
   }
 
   root_block_device {
@@ -21,8 +20,8 @@ resource "aws_instance" "terraform_ccc_elasticsearch_stack_mini" {
   }
 }
 
-resource "aws_security_group" "terraform_ccc_fluent" {
-  description = "fluent sg"
+resource "aws_security_group" "dcc_fluent" {
+  description = "${var.name-prefix}fluent-sg"
   vpc_id      = "${var.vpc_id}"
 
   ingress {

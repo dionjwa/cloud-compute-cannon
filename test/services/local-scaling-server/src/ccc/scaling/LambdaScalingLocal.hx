@@ -22,20 +22,6 @@ class LambdaScalingLocal
 		return ScalingCommands.setDesired(desiredWorkerCount);
 	}
 
-	// override public function scaleUp(type :AsgType) :Promise<Bool>
-	// {
-	// 	return super.scaleUp(type)
-	// 		.pipe(function(result) {
-	// 			return preChecks()
-	// 				.pipe(function(_) {
-	// 					return postChecks()
-	// 						.then(function(_) {
-	// 							return result;
-	// 						});
-	// 				});
-	// 		});
-	// }
-
 	override public function scaleDown(type :AsgType) :Promise<Bool>
 	{
 		return super.scaleDown(type)
@@ -55,12 +41,7 @@ class LambdaScalingLocal
 		return ScalingCommands.getAllDockerWorkerIds();
 	}
 
-	override function isInstanceCloseEnoughToBillingCycle(instanceId :String) :Promise<Bool>
-	{
-		return Promise.promise(true);
-	}
-
-	override public function removeIdleWorkers(type :AsgType, maxWorkersToRemove :Int) :Promise<Array<String>>
+	public function removeIdleWorkers(type :AsgType, maxWorkersToRemove :Int) :Promise<Array<String>>
 	{
 		return getInstancesReadyForTermination(type)
 			.pipe(function(workerIds) {

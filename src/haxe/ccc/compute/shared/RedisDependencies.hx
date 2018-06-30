@@ -55,27 +55,17 @@ class RedisDependencies
 	public static function initDependencies(injector :Injector) :Promise<Bool>
 	{
 		var redis = injector.getValue(RedisClient);
-		return Promise.promise(true)
-			.pipe(function(_) {
-				return ccc.compute.worker.job.stats.JobStatsTools.init(redis);
-			})
-			.pipe(function(_) {
-				return ccc.compute.worker.job.state.JobStateTools.init(redis);
-			})
-			.pipe(function(_) {
-				return ccc.compute.worker.job.Jobs.init(redis);
-			})
-			.pipe(function(_) {
-				return ccc.compute.worker.job.JobStream.init(redis);
-			})
-			.pipe(function(_) {
-				return ccc.lambda.RedisLogGetter.init(redis);
-			})
-			.pipe(function(_) {
-				return ccc.WorkerStateRedis.init(redis);
-			})
-			.pipe(function(_) {
-				return ccc.compute.server.services.status.SystemStatusManager.init(redis);
-			});
+		//No dependencies between these, so init concurrently
+		return Promise.whenAll([
+			ccc.compute.worker.job.stats.JobStatsTools.init(redis),
+			ccc.compute.worker.job.state.JobStateTools.init(redis),
+			ccc.compute.worker.job.Jobs.init(redis),
+			ccc.compute.worker.job.JobStream.init(redis),
+			ccc.lambda.RedisLogGetter.init(redis),
+			ccc.WorkerStateRedis.init(redis),
+			ccc.compute.server.services.status.SystemStatusManager.init(redis),
+			ccc.compute.server.services.queue.BullQueueJobTools.init(redis),
+
+		]).thenTrue();
 	}
 }

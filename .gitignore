@@ -8,6 +8,7 @@
 .idea
 .vagrant
 .terraform
+.version
 *.tfvars
 /build.hxml
 build

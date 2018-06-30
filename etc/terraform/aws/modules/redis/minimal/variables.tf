@@ -1,3 +1,8 @@
+variable "name-prefix" {
+  default = ""
+}
+
+
 variable "region" {
   description = "AWS region"
 }

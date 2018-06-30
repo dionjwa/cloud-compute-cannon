@@ -1,8 +1,8 @@
 windows:
   - name: work
-    root: ${GIT}/docker-cloud-compute
+    root: ~/Documents/git/docker-cloud-compute
     layout: main-vertical
     panes:
       - git status && git branch
+      - subl dcc.sublime-project
       - docker-compose up
-      - make server && make webpack-watch

@@ -1,7 +1,6 @@
 package ccc.metaframe.model;
 
 import metapage.*;
-import js.metapage.v1.client.*;
 import js.metapage.v1.*;
 
 import redux.Redux;
@@ -10,8 +9,8 @@ class AppModel
 	implements IReducer<MetaframeAction, AppState>
 {
 	public var initState :AppState = {
-		paused: false,
-		jobState:JobState.Waiting
+		jobImage: new URL(Browser.window.location.href).searchParams.get('image'),
+		metaframeReady: false,
 	};
 
 	public var store :StoreMethods<ApplicationState>;
@@ -38,30 +37,22 @@ class AppModel
 	function initializeMetaframe()
 	{
 		_metaframe = new Metaframe({debug:false});
-		_metaframe.onInputs(onInputs);
+		_metaframe.ready.then(function(_) {
+			store.dispatch(MetaframeAction.MetaframeReady);
+			_metaframe.onInputs(onInputs);
+			onInputs(_metaframe.getInputs());
+		});
 	}
 
 	function onInputs(inputs :MetaframeInputMap)
 	{
+		var dockerImage = new URL(Browser.window.location.href).searchParams.get('image');
 		var jobRequest :JobRequestUnified = {
 			Inputs: [],
 			CreateContainerOptions: {
-				Image: null
+				Image: dockerImage
 			},
 		};
-
-		function maybeParseJson(value :Dynamic) :Dynamic {
-			if (untyped __typeof__(value) == 'string') {
-				try {
-					return Json.parse(value);
-				} catch (err :Dynamic) {
-					trace(err);
-					return value;
-				}
-			} else {
-				return value;
-			}
-		}
 
 		//Massage inputs
 		if (inputs != null) {
@@ -74,42 +65,42 @@ class AppModel
 						} else {
 							jobRequest.ImagePullOptions = null;
 						}
-					case 'docker:CreateContainerOptions':
-						if (input.value != null && input.value != '') {
-							jobRequest.CreateContainerOptions = maybeParseJson(input.value);
-						} else {
-							jobRequest.CreateContainerOptions = null;
-						}
+					// case 'docker:CreateContainerOptions':
+					// 	if (input.value != null && input.value != '') {
+					// 		jobRequest.CreateContainerOptions = maybeParseJson(input.value);
+					// 	} else {
+					// 		jobRequest.CreateContainerOptions = null;
+					// 	}
 					case 'docker:Parameters':
 						if (input.value != null && input.value != '') {
 							jobRequest.Parameters = maybeParseJson(input.value);
 						} else {
 							jobRequest.Parameters = null;
 						}
-					case 'docker:InputsPath':
-						jobRequest.InputsPath = input.value;
-					case 'docker:OutputsPath':
-						jobRequest.OutputsPath = input.value;
-					case 'docker:Meta':
-						if (input.value != null && input.value != '') {
-							jobRequest.Meta = maybeParseJson(input.value);
-						} else {
-							jobRequest.Meta = null;
-						}
+					// case 'docker:InputsPath':
+					// 	jobRequest.InputsPath = input.value;
+					// case 'docker:OutputsPath':
+					// 	jobRequest.OutputsPath = input.value;
+					// case 'docker:Meta':
+					// 	if (input.value != null && input.value != '') {
+					// 		jobRequest.Meta = maybeParseJson(input.value);
+					// 	} else {
+					// 		jobRequest.Meta = null;
+					// 	}
 					case 'docker:image':
-						if (input.value != null && input.value != '') {
-							try {
+						if (dockerImage == null) {
+							if (input.value != null && input.value != '') {
 								jobRequest.CreateContainerOptions.Image = input.value;
-							} catch (err :Dynamic) {
-								trace(err);
 							}
+						} else {
+							trace("Put me in a notification bar: cannot change image when the image is in the URL params");
 						}
 					case 'docker:command':
 						if (input.value != null && input.value != '') {
-							trace('input.value=${input.value}');
-							trace('maybeParseJson(input.value)=${maybeParseJson(input.value)}');
 							jobRequest.CreateContainerOptions.Cmd = maybeParseJson(input.value);
 						}
+					case 'docker:pause':
+						trace('control this paused logic');
 					default:
 						jobRequest.Inputs.push({
 							name: inputName,
@@ -120,7 +111,7 @@ class AppModel
 			}
 		}
 
-		if (store.getState().app.paused) {
+		if (store.getState().app.paused || !store.getState().app.metaframeReady) {
 			store.dispatch(MetaframeAction.PendingJob(jobRequest));
 		} else {
 			store.dispatch(MetaframeAction.RunJob(jobRequest, Date.now().getTime()));
@@ -133,6 +124,11 @@ class AppModel
 	{
 		return switch(action)
 		{
+			case MetaframeReady:
+				var newState :AppState = copy(state, {
+					metaframeReady: true,
+				});
+				newState;
 			case SetJobResults(results):
 				var newState :AppState = copy(state, {
 					lastJobDuration: Date.now().getTime() - state.jobStartTime,
@@ -142,7 +138,7 @@ class AppModel
 				newState;
 			case SetPaused(paused):
 				copy(state, {
-					jobState: switch(state.jobState) {
+					jobState: state.jobState == null ? JobState.Waiting : switch(state.jobState) {
 						case Waiting: JobState.Waiting;
 						case Running: paused ? JobState.RunningPaused : JobState.Running;
 						case RunningPaused: paused ? JobState.RunningPaused : JobState.Running;
@@ -191,6 +187,7 @@ class AppModel
 					if (Type.getEnumName(MetaframeAction) == action.type) {
 						var e :MetaframeAction = cast action.value;
 						switch(e) {
+							case MetaframeReady: //Ignore
 							//If unpausing, fire off any pending job
 							case SetPaused(paused):
 								if (!paused && store.getState().app.pendingJob != null)
@@ -205,7 +202,7 @@ class AppModel
 								//Set the metaframe outputs
 								if (result != null) {
 									var outputs :MetaframeInputMap = {};
-									outputs[new MetaframePipeId('docker:exitCode')] = { value: result.exitCode };
+									outputs[new MetaframePipeId('docker:exitCode')] = { value: '${result.exitCode}'};
 									outputs[new MetaframePipeId('docker:stderr')] = { value: result.stderr != null ? result.stderr.join('') : '' };
 									outputs[new MetaframePipeId('docker:stdout')] = { value: result.stdout != null ? result.stdout.join('') : '' };
 									outputs[new MetaframePipeId('docker:error')] = { value: result.error };
@@ -227,6 +224,20 @@ class AppModel
 					return next(action);
 				}
 			}
+		}
+	}
+
+	static function maybeParseJson(value :Dynamic) :Dynamic
+	{
+		if (untyped __typeof__(value) == 'string') {
+			try {
+				return Json.parse(value);
+			} catch (err :Dynamic) {
+				trace(err);
+				return value;
+			}
+		} else {
+			return value;
 		}
 	}
 }

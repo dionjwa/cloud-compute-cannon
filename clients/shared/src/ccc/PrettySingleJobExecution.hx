@@ -12,6 +12,7 @@ typedef PrettySingleJobExecution = {
 	var outputsAndLogs :String;
 	var container :String;
 	var exitCode :Int;
+	var workerId :MachineId;
 	//These are only needed if requeueing
 	@:optional var error :String;
 }

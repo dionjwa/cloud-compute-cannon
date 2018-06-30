@@ -1,10 +1,11 @@
 {
-  "name": "ccc-bionano-scaling",
+  "name": "dcc-scaling",
   "version": "0.2.26",
-  "description": "AWS lambda function for scaling CCC autoscaling groups",
+  "description": "AWS lambda function for scaling DCC autoscaling groups",
   "main": "index.js",
   "dependencies": {
     "moment-timezone": "^0.5.14",
+    "pretty-ms": "^3.2.0",
     "redis": "^2.8.0"
   },
   "devDependencies": {

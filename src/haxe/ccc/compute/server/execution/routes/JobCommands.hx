@@ -32,82 +32,88 @@ class JobCommands
 			.pipe(function(jobIds) {
 				//Remove all jobs
 				return Promise.whenAll(jobIds.map(function(jobId) {
-					return removeJob(injector, jobId);
+					return killJob(injector, jobId);
 				}));
 			})
 			.thenTrue();
 	}
 
-	public static function deleteJobFiles(injector :Injector, jobId :JobId) :Promise<Bool>
+	static function deleteJobFiles(injector :Injector, jobdef :DockerBatchComputeJob) :Promise<Bool>
 	{
+		Assert.that(injector != null);
+		Assert.that(jobdef != null);
+		Assert.that(jobdef.id != null);
+		var jobId = jobdef.id;
 		var fs :ServiceStorage = injector.getValue(ServiceStorage);
-		return Jobs.isJob(jobId)
-			.pipe(function(jobExists) {
-				if (jobExists) {
-					return getJobDefinition(injector, jobId)
-						.pipe(function(jobdef) {
-							var promises = [JobTools.inputDir(jobdef), JobTools.outputDir(jobdef), JobTools.resultDir(jobdef)]
-								.map(function(path) {
-									return fs.deleteDir(path)
-										.errorPipe(function(err) {
-											Log.error({error:err, jobid:jobId, log:'Failed to remove ${path}'});
-											return Promise.promise(true);
-										});
-								});
-							return Promise.whenAll(promises)
-								.thenTrue();
-						});
-				} else {
-					var path = '${jobId}/';
-					return fs.deleteDir(path)
-						.errorPipe(function(err) {
-							Log.error({error:err, jobid:jobId, log:'Failed to remove ${path}'});
-							return Promise.promise(true);
-						});
-				}
+		var promises = [JobTools.inputDir(jobdef), JobTools.outputDir(jobdef), JobTools.resultDir(jobdef)]
+			.map(function(path) {
+				return fs.deleteDir(path)
+					.errorPipe(function(err) {
+						Log.warn({error:err, jobid:jobId, log:'Failed to remove ${path}. This dir may have previoulsy been removed'});
+						return Promise.promise(true);
+					});
 			});
+		return Promise.whenAll(promises)
+			.thenTrue();
 	}
 
 	public static function killJob(injector :Injector, jobId :JobId) :Promise<Bool>
 	{
-		return JobStateTools.cancelJob(jobId)
-			.pipe(function(_) {
-				return deleteJobFiles(injector, jobId);
-			})
-			.thenTrue();
+		return Jobs.getJob(jobId)
+			.pipe(function(jobDef) {
+				if (jobDef != null) {
+					return removeJob(injector, jobDef);
+				} else {
+					return Promise.promise(false);
+				}
+			});
 	}
 
 	/**
-	 * Removes job from the system, except it DOESN'T remove
-	 * job data from the storage service (e.g. S3)
-	 * TODO: do NOT ever remove job stats this way except
-	 * via a timelime method.
-	 * @param  jobId        :JobId        [description]
-	 * @param  processQueue :ProcessQueue [description]
-	 * @return              [description]
+	 * Removes job from the system, including data from S3
+	 * and stats. No trace of the job will remain in the system
+	 * after this call.
 	 */
-	public static function removeJob(injector :Injector, jobId :JobId) :Promise<Bool>
+	public static function removeJob(injector :Injector, jobdef :DockerBatchComputeJob) :Promise<Bool>
 	{
-		var processQueue = injector.getValue(ccc.compute.worker.QueueJobs);
-		return Promise.promise(true)
-			.pipe(function(_) {
-				return JobStateTools.cancelJob(jobId);
+		Assert.notNull(jobdef);
+		Assert.notNull(jobdef.id);
+		var jobId = jobdef.id;
+		return JobStatsTools.isJob(jobId)
+			.pipe(function(jobExists) {
+				if (jobExists) {
+					return JobStateTools.cancelJob(jobId)
+						.pipe(function(_) {
+							var processQueue :ccc.compute.worker.QueueJobs = injector.getValue(ccc.compute.worker.QueueJobs);
+							//Non-workers don't have to check locally running jobs
+							//The job will be cancelled at the docker level wherever
+							//it is (on another worker) but if this worker has it
+							//cancel it locally
+							if (processQueue != null) {
+								return processQueue.cancel(jobId);
+							} else {
+								return Promise.promise(true);
+							}
+						})
+						.pipe(function(_) {
+							//This is just deleting redis keys, no side effects
+							return JobStateTools.removeJob(jobId);
+						})
+						.pipe(function(_) {
+							//This is just deleting redis keys, no side effects
+							return Jobs.removeJob(jobId);
+						})
+						.pipe(function(_) {
+							return JobStatsTools.removeJobStatsAll(jobId);
+						});
+				} else {
+					return Promise.promise(false);
+				}
 			})
+			//Regardless if the job exists in the cache, try to delete the job files
 			.pipe(function(_) {
-				return processQueue.cancel(jobId);
-			})
-			.pipe(function(_) {
-				return JobStateTools.removeJob(jobId);
-			})
-			.pipe(function(_) {
-				Log.warn('No longer removing job stats tools via removeJob');
-				// return JobStatsTools.removeJobStats(jobId);
-				return Promise.promise(true);
-			})
-			.pipe(function(_) {
-				return Jobs.removeJob(jobId);
-			})
-			.thenTrue();
+				return deleteJobFiles(injector, jobdef);
+			});
 	}
 
 	public static function getJobDefinition(injector :Injector, jobId :JobId, ?externalUrl :Bool = true) :Promise<DockerBatchComputeJob>
@@ -219,12 +225,9 @@ class JobCommands
 			});
 	}
 
-	public static function getStatus(injector :Injector, jobId :JobId) :Promise<Null<String>>
+	public static function getStatus(injector :Injector, jobId :JobId) :Promise<JobStatus>
 	{
-		return JobStateTools.getStatus(jobId)
-			.then(function(status) {
-				return '$status';
-			});
+		return JobStateTools.getStatus(jobId);
 	}
 
 	public static function getStatusv1(injector :Injector, jobId :JobId) :Promise<Null<String>>
@@ -337,7 +340,7 @@ class JobCommands
 		}
 
 		switch(command) {
-			case Remove,RemoveComplete,Kill,Status,Result,ExitCode,Definition,JobStats,Time:
+			case Remove,Kill,Status,Result,ExitCode,Definition,JobStats,Time:
 			default:
 				return Promise.promise(cast {error:'Unrecognized job subcommand=\'$command\' [remove | kill | result | status | exitcode | stats | definition | time]'});
 		}
@@ -347,12 +350,24 @@ class JobCommands
 		return Promise.promise(true)
 			.pipe(function(_) {
 				return switch(command) {
-					case Remove:
-						removeJob(injector, jobId)
-							.then(function(r) return cast r);
-					case RemoveComplete,Kill:
-						killJob(injector, jobId)
-							.then(function(r) return cast r);
+					case Remove,Kill:
+						// Put the deletion task on the queue. It executes the same
+						// deletion task as the following, but provides some insurance
+						// that the deletion task will executed. It assumed that the
+						// duration for some job deletions will be high enough to
+						// seek additional safeguards against leaving remains of deleted
+						// jobs. Otherwise the redis cache will eventually be consumed and
+						// bring the system to a halt if it reaches capacity.
+						return Jobs.getJob(jobId)
+							.pipe(function(jobDef) {
+								if (jobDef != null) {
+									injector.getValue(Queues).enqueueJobCleanup(jobDef);
+									return killJob(injector, jobId)
+										.then(function(r) return cast r);
+								} else {
+									return Promise.promise(false);
+								}
+							});
 					case Status:
 						getStatus(injector, jobId)
 							.then(function(r) return cast r);
@@ -389,6 +404,18 @@ class JobCommands
 						getJobDefinition(injector, jobId)
 							.then(function(r) return cast r);
 				}
+			})
+			.then(function(result :Dynamic) {
+				if (result == null) {
+					switch(command) {
+						case Remove,Kill,ExitCode:
+							//If there's no job here just return null
+						case Status,Result,JobStats,Time,Definition:
+							//No results for these types returns a 404
+							throw new haxe.remoting.RpcErrorResponse(404, "No entry found for that jobId");
+					}
+				}
+				return result;
 			})
 			.then(function(result :Dynamic) {
 				return cast result;
