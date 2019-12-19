@@ -1,8 +1,11 @@
 require('dotenv').config()
-var path = require('path');
-var webpack = require('webpack');
-var CopyWebpackPlugin = require('copy-webpack-plugin')
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+const path = require('path');
+const webpack = require('webpack');
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+// const MarkdownPlugin = require('markdown-html-webpack-plugin');
+// const marked = require("marked");
+// const renderer = new marked.Renderer();
 
 module.exports = {
 
@@ -72,6 +75,31 @@ module.exports = {
         test: /\.css$/,
         use: [ 'style-loader', 'css-loader' ]
       },
+      // {
+      //   test: /\.md$/,
+      //   use: [
+      //     {
+      //       loader: "html-loader"
+      //     },
+      //     {
+      //       loader: "markdown-loader",
+      //       options: {
+      //         /* your options here */
+      //       }
+      //     }
+      //   ]
+      // }
+      // {
+      //   test: /\.md$/,
+      //   loader: [
+      //     // 'babel-loader',
+      //     '@hugmanrique/react-markdown-loader'
+      //   ]
+      // },
+      // {
+      //   test: /\.html$/,
+      //   use: [ 'file-loader?name=[path][name].[ext]!extract-loader!html-loader' ]
+      // },
     ]
   },
 
@@ -80,6 +108,12 @@ module.exports = {
     //For copying static web files
     new CopyWebpackPlugin([
       { from: 'clients/metaframe/web/', to: '.' }
-    ], {})
+    ], {}),
+    // new MarkdownPlugin({
+    //   filePath: '../clients/metaframe/web',
+    //   exportPath: '../build/clients/metaframe/',
+    //   isEncodeName: false, // if need to encode file name, like chinese
+    //   // template: 'template.html'
+    // }),
   ],
 }

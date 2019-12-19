@@ -1,7 +1,6 @@
 import ccc.metaframe.ApplicationState;
 import ccc.metaframe.ApplicationStore;
 import ccc.metaframe.view.AppView;
-import ccc.metaframe.view.HelpView;
 
 import js.Browser;
 import js.html.DivElement;
@@ -13,15 +12,6 @@ import react.ReactMacro.jsx;
 import redux.Store;
 import redux.react.Provider;
 
-// import router.Link;
-// import router.ReactRouter;
-// import router.RouteComponentProps;
-@:jsRequire('react-router-dom','BrowserRouter')
-extern class Router extends react.ReactComponent  { }
-
-@:jsRequire('react-router-dom','Route')
-extern class Route extends react.ReactComponent  { }
-
 class Main
 {
 	/**
@@ -32,7 +22,9 @@ class Main
 	**/
 	public static function main()
 	{
-		// Webpack.require('./Main.css');
+		//For markdown generated content, current the Help
+		Webpack.require('../../../node_modules/react-bulma-components//dist/react-bulma-components.min.css');
+		Webpack.require('../web/css/main.css');
 		var store = ApplicationStore.create();
 		var root = createRoot();
 		render(root, store);
@@ -49,7 +41,6 @@ class Main
 
 	static function render(root:DivElement, store:Store<ApplicationState>)
 	{
-
 		// var theme = Styles.createMuiTheme({
 		// 	palette: {
 		// 		primary: 'purple',
@@ -84,6 +75,7 @@ class Main
 		//<Router basename="/metaframe">
 				// 	<Route path="/:dockerimage" component={AppView} />
 				// </Router>
+				// /Users/dion/dev/git/docker-cloud-compute/clients/metaframe/src/Main.hx
 	}
 
 	static function pageWrapper(props:Dynamic)

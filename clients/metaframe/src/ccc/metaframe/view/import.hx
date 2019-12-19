@@ -5,6 +5,5 @@
 	import redux.IReducer;
 	import redux.StoreMethods;
 
-	// import js.npm.materialui.MaterialUICore;
 	import js.npm.bulma.Bulma;
 #end

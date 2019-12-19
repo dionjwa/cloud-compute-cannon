@@ -33,8 +33,6 @@ then
 	exit 1
 fi
 
-
-
 VERSION_DOCKER_COMPOSE=$(cat etc/docker-compose/single-server/docker-compose.yml \
   | grep "image: \"dionjwa/docker-cloud-compute:" \
   | head -1 \

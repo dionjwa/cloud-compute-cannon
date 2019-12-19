@@ -1,25 +1,24 @@
 package ccc.metaframe.view;
 
-import router.Link;
+import js.npm.reactmarkdown.ReactMarkdown;
+
 import router.RouteComponentProps;
 
-import react.ReactUtil.*;
-
 class HelpView
-	extends ReactComponentOfProps<RouteComponentProps>
+	extends ReactComponentOfProps<Dynamic>
 {
-	public function new(props:RouteComponentProps)
+	static var CONTENT = util.FileMacro.getFileContent('./clients/metaframe/web/help.md');
+
+	public function new(props:Dynamic)
 	{
 		super(props);
 	}
 
 	override public function render()
 	{
-		return jsx('
-			<div id="app-container">
-				<span>
-					You need to add the docker image
-				</span>
-			</div>');
+		var url = new URL(Browser.window.location.href);
+		var template = new haxe.Template(CONTENT);
+		var content = template.execute(url);
+		return jsx('<div id="HelpView" className="content"><ReactMarkdown source={content} /></div>');
 	}
 }

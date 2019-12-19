@@ -112,21 +112,24 @@ class AppView
 		};
 
 		var dockerImageName :String = state.app != null && state.app.jobImage != null ? state.app.jobImage : null;
-		var dockerImageNameShort = dockerImageName.replace('docker.io/', '');
-		var dockerImageUrl = 'https://hub.docker.com/r/${dockerImageName.indexOf("/") > -1 ? dockerImageName : "_/" + dockerImageName}';
-		var dockerImageJsx = jsx('<span style={styles.titleText}><a href={dockerImageUrl} target="_blank">{dockerImageNameShort}</a></span>');
 
-		if (dockerImageName == null || !Metaframe.isIframe()) {
+		//Show the URL of the docker container, linking to the dockerhub page
+		//Should this be configurable? There's not really an alternative to dockerhub yet
+		var dockerImageJsx = if (dockerImageName != null) {
+			var dockerImageNameShort = dockerImageName.replace('docker.io/', '');
+			var dockerImageUrl = 'https://hub.docker.com/r/${dockerImageName.indexOf("/") > -1 ? dockerImageName : "_/" + dockerImageName}';
+			jsx('<span className="is-size-3 has-text-left"><a href={dockerImageUrl} target="_blank">{dockerImageNameShort}</a></span>');
+		} else {
+			null;
+		}
+		if (!Metaframe.isIframe()) {
 			return jsx('
 				<div id="app-container">
 					${dockerImageJsx}
-					<span style={styles.titleText}>
-						Show help here
-					</span>
+					<br/>
+					<HelpView />
 				</div>');
 		}
-
-		dockerImageName = dockerImageName.replace('docker.io/', '');
 
 		var jobState :JobState = state.app.jobState;
 		var paused = state.app.paused;
